@@ -1,0 +1,180 @@
+# Carte hors ligne : tuiles vectorielles GVT1
+
+Cette conception remplace le format GVM1 (`core/map_data.*`, `tools/osm_to_gvm.py`, `docs/carte_hors_ligne.md`), qui relisait tout le fichier à chaque affichage, sans index ni niveaux de zoom. GVM1 est toujours dans le dépôt, inutilisé.
+
+## Principe
+
+Une carte est un fichier unique sur la microSD. Il contient des **tuiles** de la grille XYZ (Web Mercator), chacune avec les lignes et les surfaces à dessiner à un zoom donné. L'appareil ne lit que les 2 à 12 tuiles visibles, grâce à un index chargé en PSRAM au démarrage. La carte est dessinée dans une image en mémoire, qui n'est refaite que quand c'est nécessaire.
+
+Contenu (format version 2) :
+- **lignes** : routes, chemins, cours d'eau, voies ferrées ;
+- **surfaces** : zones urbaines, forêts, champs et prairies, parcs, roche et glaciers, plans d'eau. Elles colorent le fond de la carte. Pas de noms ni de points d'intérêt.
+
+Les fichiers de la version 1 (lignes seules, comme `carte_grenoble.gvt` du premier essai) restent lisibles : le fond est alors uni.
+
+## Niveaux, classes et couleurs
+
+Zooms stockés : 11 à 15 (réglable à la conversion). Au zoom 15, une tuile fait environ 0,86 km de côté à la latitude de l'Isère et 4096 unités, soit environ 0,21 m par unité.
+
+Lignes (classes 1 à 9) :
+
+| Classe | Contenu OSM | Zoom minimal |
+|---|---|---|
+| 1 | motorway, trunk, primary | 11 (les `_link` : 12) |
+| 2 | secondary | 12 (`_link` : 13) |
+| 3 | tertiary | 13 (`_link` : 14) |
+| 4 | unclassified | 13 |
+| 4 | residential, living_street, road | 14 |
+| 4 | service | 15 |
+| 5 | cycleway | 13 |
+| 6 | track, path, bridleway | 14 |
+| 6 | footway, steps, pedestrian | 15 |
+| 7 | waterway river, canal | 12 (stream : 14) |
+| 8 | natural water ou coastline en ligne ouverte | 12 |
+| 9 | railway rail | 12 (narrow_gauge, light_rail : 13 ; tram, funicular : 14) |
+
+Surfaces (classes 10 à 15), de la plus basse à la plus haute dans l'ordre de dessin :
+
+| Classe | Contenu OSM | Zoom minimal |
+|---|---|---|
+| 12 champs | landuse farmland, meadow (12), grass, orchard, vineyard, village_green (13), allotments (14) ; natural scrub, grassland, heath (12) | 12 à 14 |
+| 11 forêts | landuse forest ; natural wood | 11 |
+| 14 roche | natural bare_rock, scree, glacier | 11 |
+| 10 urbain | landuse residential, commercial, retail, industrial | 11 |
+| 13 parcs | leisure park (12), garden, recreation_ground, golf_course (13) | 12 à 13 |
+| 15 eau | natural water (polygones, y compris les lacs en relations) | 11 |
+
+Là où aucune surface n'existe, le fond est la couleur de base du thème.
+
+Deux thèmes de couleurs (`ui_app_set_map_theme`) : 0 sombre coloré (fond 0x1B2229, forêts vert foncé, eau bleu profond, routes claires) et 1 clair (fond 0xF2EFE9 comme la carte OpenStreetMap, forêts vert tendre, routes orange, jaune et gris, pistes cyclables violettes pour ne pas les confondre avec la trace bleue). L'échelle et la mention OpenStreetMap changent de couleur avec le thème. Les captures `docs/captures/carte_demo_sombre.png` et `carte_demo_clair.png` montrent les deux sur une petite ville fictive. Le thème par défaut est le **clair**. Il se choisit dans l'écran RÉGLAGES de la page d'accueil (boutons SOMBRE et CLAIR, `docs/captures/reglages_carte.png`) et s'enregistre à part de la configuration des champs, sous la forme `m1;0` (sombre) ou `m1;1` (clair) : `ui_map_cfg_encode` et `ui_map_cfg_decode`, hook `ui_hooks.map_cfg_changed` appelé à chaque changement, `ui_app_set_map_cfg` pour appliquer un réglage relu au démarrage. L'écriture et la relecture sur la microSD ou la mémoire flash restent à brancher sur l'appareil (le simulateur affiche `CONFIG CARTE  m1;1`).
+
+Un objet plus petit que `--min-size` unités (8 par défaut, soit environ une demi-largeur de pixel) est supprimé à ce zoom. Les lignes sont simplifiées par Douglas-Peucker avec une tolérance de `--tolerance` unités (8), les surfaces avec `--area-tolerance` (16).
+
+## Format du fichier (petit-boutiste)
+
+En-tête, 36 octets :
+
+| Décalage | Taille | Champ |
+|---|---|---|
+| 0 | 4 | `GVT1` |
+| 4 | 2 | version (2 ; la version 1 n'a pas de surfaces) |
+| 6 | 2 | étendue de tuile (4096) |
+| 8 | 1 | zoom minimal |
+| 9 | 1 | zoom maximal |
+| 10 | 2 | réservé |
+| 12 | 4 | nombre de tuiles |
+| 16 | 4 | décalage de l'index (36) |
+| 20 | 16 | emprise : ouest, sud, est, nord, en degrés x 1e7 (int32) |
+
+Index, 16 octets par tuile, trié par clé croissante : clé (uint64) = `zoom << 32 | x << 16 | y`, décalage absolu (uint32), taille (uint32).
+
+Tuile : nombre d'enregistrements (varint), puis pour chacun : classe (1 octet), type (1 octet : 0 ligne, 1 surface), puis
+- ligne : nombre de points (varint, 2 à 1024), puis les points ;
+- surface : nombre d'anneaux (varint, 1 à 64), puis pour chaque anneau son nombre de points (varint, au moins 3) et ses points. Au plus 4096 points par surface dans une tuile. Remplissage pair-impair : un anneau à l'intérieur d'un autre est un trou, et le dernier point n'est pas répété.
+
+Les points sont des entiers relatifs à la tuile : le premier en absolu, les suivants en différence avec le précédent, chaque valeur en zigzag + varint. Les coordonnées vont de -64 à 4160 (marge de découpe de 64 unités, pour éviter les trous aux bords). Les enregistrements sont triés par classe croissante. Une ligne de plus de 1024 points est coupée en morceaux qui se recouvrent d'un point. Une tuile entièrement à l'intérieur d'une forêt contient un simple rectangle plein.
+
+### Intégrer le choix du thème dans une page de réglages existante
+
+Par défaut, le bouton RÉGLAGES de la page d'accueil ouvre un écran de l'application qui ne contient que le choix du thème (`build_settings_screen` dans `ui/app.c`). Deux façons de ne pas remplacer une page de réglages que tu as déjà :
+
+- compiler avec `-DUI_HOME_SETTINGS_SCREEN=0` : le bouton RÉGLAGES garde alors exactement son comportement d'origine, et l'application ne crée aucun écran de réglages ;
+- appeler `ui_app_add_theme_picker(&app, parent, x, y, largeur)` dans ta propre page : elle ajoute l'étiquette FOND DE CARTE et les deux boutons SOMBRE / CLAIR dans `parent`, sans toucher au reste, et retourne la hauteur occupée (92 pixels). À appeler une seule fois.
+
+Dans les deux cas, le hook `ui_hooks.map_cfg_changed` signale chaque changement, et `ui_app_set_map_cfg` applique un réglage relu au démarrage.
+
+## Fichiers
+
+| Fichier | Rôle |
+|---|---|
+| `tools/overpass_fetch.py` | téléchargement d'un extrait depuis l'API Overpass, par cellules, avec reprise |
+| `tools/osm_to_gvt.py` | convertisseur PC : GeoJSON ou JSON Overpass, un ou plusieurs fichiers, vers GVT1 (bibliothèque standard uniquement) |
+| `core/gvt.h`, `core/gvt.c` | lecteur C : en-tête, index, recherche d'une tuile, décodage des lignes et des surfaces |
+| `core/mapview.h`, `core/mapview.c` | vue carte sans LVGL : niveau de zoom, tuiles à lire, passage tuile vers pixels, cache de 16 tuiles |
+| `core/polyfill.h`, `core/polyfill.c` | remplissage de surfaces (pair-impair) dans un tampon RGB565 |
+| `core/linedraw.h`, `core/linedraw.c` | segments épais lissés à bouts arrondis dans un tampon RGB565 |
+| `ui/app.c`, `ui/app.h` | image de la carte dans la page trace : `ui_app_set_map`, `ui_app_set_map_theme` |
+| `tests/make_gvt_fixture.py`, `tests/make_gvt_demo.py` | données synthétiques (lignes et surfaces) ; petite ville fictive |
+| `tests/verify_gvt.py`, `tests/test_gvt.c`, `tests/test_mapview.c`, `tests/test_polyfill.c`, `tests/test_linedraw.c`, `tests/test_overpass.py` | tests |
+| `ui/map_preview.c`, `ui/build_map_preview.sh` | aperçu de la page trace avec fond de carte, sans GPX personnel |
+| `make gvt-test` | enchaîne tous les tests de la carte |
+
+## Utilisation
+
+Côté programme hôte (ordinateur ou ESP32-S3) :
+
+1. Fournir une fonction de lecture sur le fichier de la carte, puis `gvt_open` et `gvt_load_index` dans un tampon de `n_tiles` x 16 octets.
+2. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache de tuiles, avec `mapview_init`.
+3. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
+
+Mémoire de travail statique à prévoir en PSRAM : image de la carte 341 Ko, cache de tuiles 1 Mo, environ 88 Ko pour le remplissage des surfaces (`polyfill.c`) et 48 Ko de tampons de décodage dans `ui/app.c`. Soit environ 1,5 Mo sur les 8 Mo.
+
+La carte est centrée sur le même point que la trace (le point du parcours le plus proche de la position), avec la même échelle et la même rotation (nord en haut ou trace devant). Elle n'a donc pas besoin de latitude et longitude dans `ui_sample_t`.
+
+Dessin : fond, puis surfaces dans l'ordre du tableau ci-dessus, puis lignes en trois passes (eaux et voies ferrées, puis chemins et petites routes, puis routes principales). Les segments de moins de 1,5 pixel et ceux hors de l'image sont ignorés. L'image fait 32 pixels de plus que l'écran de chaque côté. Elle est **redessinée seulement** si l'échelle change, si le cap tourne de plus de 1,5 degré, ou si la position sort de la marge ; sinon elle est simplement décalée. Mesuré en simulation, sur la carte de Grenoble, pour 5 minutes à 6 m/s : nord en haut, 32 redessins à 250 m de demi-largeur, 14 à 600 m, 5 à 1,5 km ; trace devant, 35, 18 et 13. Avant le cache, la carte était redessinée toutes les secondes (300 fois).
+
+LVGL n'est pas utilisé pour les lignes de la carte : sa file de tâches de dessin garde chaque ligne en mémoire (plusieurs milliers de segments épuisent les 256 Ko du tas de LVGL) et a fini par ne plus rendre la main sur un enchaînement de lignes sur un canevas, alors que la même ligne seule passait.
+
+## Vérification sur ordinateur
+
+- `make gvt-test` :
+  - fichier produit contre les données d'origine (sommets, points hors trace, et pour les surfaces des milliers de points tirés au hasard, dont beaucoup près des bords : un point est dans une surface décodée exactement quand il est dans la surface d'origine, sauf à moins de tolérance + 2 unités du bord) ; trois bugs injectés volontairement dans le convertisseur sont tous détectés ;
+  - lecteur C, tuiles tronquées, tampon trop petit ;
+  - alignement carte/trace (écart maximal 0,05 pixel), zoom, couverture des tuiles pour toutes les rotations, cache ;
+  - remplissage et lignes : plus de 4 millions de pixels de remplissage et 12 millions de pixels de lignes comparés à une référence indépendante, aucun écart hors égalités d'arrondi sur une arête ;
+  - requête et découpage Overpass avec un faux serveur local (le vrai serveur n'est pas contacté par ce test).
+- `sh ui/build_map_preview.sh` : rend la page trace avec LVGL 9.2.2 (thèmes sombre et clair, avec et sans la trace), compte les redessins pendant une sortie simulée, et vérifie le réglage du thème (clair par défaut, enregistrement, refus de 8 enregistrements invalides, parcours de l'écran RÉGLAGES jusqu'au retour à l'accueil).
+- `sh sim/build_sim.sh parcours.gpx [sortie.gpx] --carte carte.gvt` : le simulateur affiche la carte sur la page trace (deuxième page). Au démarrage, il indique quelle part du parcours est couverte par la carte (un point tous les 500 m) et avertit si moins de la moitié l'est : sans carte sous le parcours, la page trace n'a qu'un fond uni. Avec `--selftest`, une vérification de plus contrôle que la page trace dessine des routes de la carte, sans erreur de lecture : elle échoue si la carte ne couvre pas le parcours.
+
+## Faire un extrait OpenStreetMap
+
+### En ligne de commande (recommandé)
+
+```
+python3 tools/overpass_fetch.py --bbox ouest,sud,est,nord --out-dir extrait
+python3 tools/osm_to_gvt.py extrait/*.json carte.gvt
+```
+
+`overpass_fetch.py` interroge l'API Overpass (`https://overpass-api.de/api/interpreter` par défaut, option `--server` pour un autre serveur) par cellules de 10 km (`--cell-km`), une requête à la fois avec 5 secondes de pause, en rejouant la requête après un refus pour trop de requêtes (429) ou un serveur chargé (504). Chaque cellule est écrite dans un fichier ; relancer la commande reprend là où elle s'est arrêtée. Les objets qui touchent deux cellules sont fusionnés par identifiant lors de la conversion. Au-delà de 50 cellules, l'outil demande `--yes` : pour une région entière, un fichier `.osm.pbf` téléchargé d'un seul bloc est plus adapté qu'un grand nombre de requêtes sur un serveur public (ce chemin n'est pas écrit).
+
+La requête demande les lignes **et les surfaces** (forêts, zones urbaines, champs, parcs, roche, eau, y compris en relations). Les téléchargements sont donc nettement plus gros : `--no-areas` ne demande que les lignes et donne un fond uni. `osm_to_gvt.py --no-areas` fait de même à la conversion.
+
+Pour couvrir un parcours, l'outil peut calculer la zone à partir du fichier GPX : `python3 tools/overpass_fetch.py --gpx parcours.gpx --out-dir extrait` (zone des traces agrandie de 3 km de chaque côté, `--margin-km` pour changer ; plusieurs fichiers GPX possibles). Il affiche la boîte calculée et le nombre de cellules.
+
+La boîte se donne autrement en degrés décimaux : ouest, sud, est, nord. Exemple (environ 8 km sur 10 km autour du centre de Grenoble) : `--bbox 5.67,45.14,5.78,45.23`.
+
+Un essai réel de l'outil (sans surfaces, centre de Grenoble) a donné 48 427 objets, 34 Mo de JSON et une carte de 1,07 Mo, la plus grande tuile faisant 18 Ko. Les tests (`tests/test_overpass.py`) utilisent un faux serveur local.
+
+Avec `curl`, une requête isolée s'écrit (la requête est dans un fichier `requete.overpassql`, avec une boîte explicite `(sud,ouest,nord,est)` à la place de `{{bbox}}`, qui n'existe que dans Overpass Turbo) :
+
+```
+curl -o extrait.json --data-urlencode "data@requete.overpassql" https://overpass-api.de/api/interpreter
+```
+
+### Avec Overpass Turbo
+
+Le convertisseur lit aussi un GeoJSON exporté depuis Overpass Turbo (overpass-turbo.eu) : cadrer la vue, coller la requête de `overpass_fetch.py` (fonction `build_query`) en remplaçant la boîte par `({{bbox}})`, exécuter, puis Exporter, GeoJSON (avec Safari, le texte s'ouvre dans un nouvel onglet : le copier dans un fichier).
+
+### Conseils
+
+- Commencer par une zone d'environ 10 km de côté, regarder le résultat de la conversion, puis agrandir.
+- Les petits chemins (`service`, `footway`, `steps`, `pedestrian`, qui n'apparaissent qu'au zoom 15) sont les plus nombreux en ville.
+- Le convertisseur charge tous les fichiers en mémoire : prévoir plusieurs fois leur taille en RAM.
+- Une grande forêt de 50 000 points se convertit en une seconde (mesuré sur une forêt synthétique).
+- À la fin de la conversion, le convertisseur donne les tailles par zoom, la plus grande tuile, et prévient si des tuiles dépassent le cache de l'appareil (64 Ko) : elles ne seraient pas affichées.
+- Mention obligatoire pour les données OpenStreetMap : © contributeurs OpenStreetMap, licence ODbL (l'appareil l'affiche déjà sous la carte).
+
+## Taille pour l'Isère (estimation)
+
+Avec une surface d'environ 7 400 km2 (valeur à confirmer), il y a au plus 13 300 tuiles pour les zooms 11 à 15 (9 965 au zoom 15). L'index fait donc au plus environ 207 Ko.
+
+Mesuré sur le centre de Grenoble (boîte 5.67,45.14,5.78,45.23) avec les surfaces : 666 tuiles, 1,54 Mo (1,07 Mo pour les seules lignes), plus grande tuile 26,9 Ko sur 64 Ko de cache, soit environ 2,3 Ko par tuile en moyenne. Si toutes les tuiles de l'Isère lui ressemblaient, la carte ferait au plus environ 31 Mo. Le centre de Grenoble est l'une des zones les plus chargées du département, mais ses surfaces (zones urbaines, forêts des pentes, rivière) ne sont pas représentatives des zones agricoles ou de haute montagne.
+
+## Limites connues
+
+- Les surfaces ont été vérifiées automatiquement sur des données synthétiques, et visuellement sur un extrait réel de Grenoble (forêts, zones urbaines, rivière, parcs reconnaissables, pas de trou aux bords de tuiles). Un anneau de relation qui ne se ferme pas (par exemple une forêt coupée par la limite de la zone téléchargée) est ignoré : sur l'extrait de Grenoble, une partie des forêts des pentes peut donc manquer.
+- Le convertisseur charge tout le GeoJSON en mémoire. Pour l'Isère entière, il faudra le découper par zones d'extraction Overpass ou lire un fichier `.osm.pbf` en flux. Ce second cas n'est pas écrit.
+- Le rendu n'a été essayé que sur ordinateur. Le temps d'un dessin complet de la carte sur l'ESP32-S3 n'est pas mesuré : sur le PC de développement, un dessin complet de la carte de Grenoble avec surfaces (jusqu'à 7 800 segments) prend 5 à 17 ms.
+- Un cap qui change de moins de 1,5 degré entre deux dessins laisse un décalage de quelques pixels aux bords de l'écran entre la carte et la trace ; la carte est redessinée dès que ce seuil est dépassé.
+- La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. Les tuiles de plus de 64 Ko ne sont pas affichées (compteur `too_big`).
+- La fonction de lecture de la microSD pour la carte Waveshare n'est pas écrite.
