@@ -3,7 +3,7 @@
 ## Les cinq exigences
 - **Profil des montées type ClimbPro** : fait. Détection avec fusion et recul du départ, catégories Garmin, noms de cols, écrans dédiés. Vérifié sur une sortie de 103 km, comparé à Strava et au profil officiel du Mont Tournier.
 - **Enregistrement de la séance** : écriture FIT faite et relue sans erreur par le décodeur officiel Garmin et par fitdecode, avec récupération après coupure. L'acquisition GNSS reste à faire.
-- **Export Strava** : fichier prêt. L'envoi automatique n'est pas écrit, rien n'a été testé chez Strava.
+- **Export Strava** : script d'envoi par l'API écrit (`tools/strava_upload.py`, mode d'emploi dans `docs/export_strava.md`), testé contre un faux serveur. Le premier envoi réel chez Strava reste à faire. L'envoi direct depuis la carte n'est pas écrit.
 - **Guidage sur carte** : trace GPX faite (chargement, positionnement, erreur moyenne de 3 m en simulation). Il manque le fond de carte et les indications de virage.
 - **Capteurs FC et cadence** : pas commencé. L'exemple Espressif adapté à une ceinture cardio est repéré.
 
