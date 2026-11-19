@@ -25,7 +25,7 @@ Carte Waveshare ESP32-S3-Touch-LCD-3.5 (écran tactile 3,5 pouces 320 x 480, 8 M
 
 Prérequis : gcc, make, python3, et `pip install garmin-fit-sdk fitdecode` pour la vérification des fichiers FIT.
 
-Placez un GPX de test, avec heures et fréquence cardiaque, dans `tests/data/sortie.gpx` (ce fichier n'est jamais versionné), puis :
+Placez un GPX de test, avec heures et fréquence cardiaque, dans `tests/data/sortie.gpx` (ce fichier est exclu par le `.gitignore`), puis :
 
     make test          # alertes, montées, noms, positionnement, enregistrement FIT
     make nommage       # facultatif : noms avec une vraie base dans tests/data/gps.csv
@@ -54,6 +54,6 @@ La procédure complète, y compris les tests de carte, est dans [docs/ARCHITECTU
 
 ## Données personnelles
 
-Le dépôt ne doit contenir ni trace GPS ni fichier d'activité : une sortie commence et finit souvent chez soi. Les fichiers personnels (GPX, FIT, `gps.csv`, jetons Strava) restent en local.
+Le dépôt ne doit contenir ni trace GPS ni fichier d'activité : une sortie commence et finit souvent chez soi. Les fichiers personnels (GPX, FIT, TCX, `gps.csv`, jetons Strava) restent en local.
 
-Statut de la protection : l'exclusion de `*.gpx` et `*.fit` par le `.gitignore` était annoncée par l'ancien README, mais elle n'a pas été vérifiée, ni dans le fichier ni dans l'historique Git. Cette vérification est obligatoire avant toute publication (voir `docs/DECISIONS.md`, D04).
+Le `.gitignore` exclut `*.gpx`, `*.fit`, `*.tcx`, `*.csv`, `*.pbf`, `build/` et `.env`. Il ne protège pas un fichier déjà suivi par Git, ni un dossier envoyé à la main par l'interface web : vérifier son contenu avant chaque envoi. Le détail de la vérification faite le 19 novembre 2026 est dans `docs/DECISIONS.md` (D04).

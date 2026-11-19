@@ -50,7 +50,7 @@ Dernière vérification : à renseigner (date, commit, personne).
 
 ## Points non vérifiés
 
-- Protection des données : le `.gitignore` est annoncé par l'ancien README comme excluant `*.gpx` et `*.fit`, mais son contenu n'a jamais été lu. L'historique Git n'a pas été examiné. Voir `docs/DECISIONS.md` (D04).
+- Protection des données : le `.gitignore` a été lu le 19 novembre 2026 et ne protégeait pas les GPX, FIT et TCX (corrigé dans la branche `docs/donnees-et-gitignore`). L'historique de `main` est contrôlé sur 9 commits sur 13 (voir `docs/DECISIONS.md`, D04). Les images de `docs/captures/` et les fichiers `tests/data/ride*.fit` générés par `make test` n'ont pas été examinés.
 - Contenu des branches `ecran-demarrage` et `qwen`.
 - Présence de `recup_cols.py` dans le dépôt.
 - Lignes de règles du Makefile non lues (génération des données de rejeu, éventuelle règle du test BLE).

@@ -25,9 +25,11 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Date : octobre 2026 
 - Décision : aucun GPX, FIT ni trace dans le dépôt.
 - Raison : une sortie commence et finit souvent au domicile.
-- Mise en oeuvre annoncée : l'ancien README indiquait que `.gitignore` exclut `*.gpx` et `*.fit`.
-- Statut de la vérification : non vérifié. Le contenu du `.gitignore` et l'historique Git n'ont jamais été examinés. La règle est une intention, pas un fait établi, jusqu'à preuve.
-- Condition avant toute publication sur GitHub : lire le `.gitignore`, contrôler l'historique de toutes les branches (GPX, FIT, TCX, `gps.csv`, jetons), et corriger avant de publier si nécessaire.
+- Constat du 19 novembre 2026 : l'ancien README annonçait que `.gitignore` excluait `*.gpx` et `*.fit`. C'était inexact : le fichier ne contenait que `.DS_Store`, `venv/`, `*.pbf` et `*.csv`.
+- Mise en oeuvre : `*.gpx`, `*.fit`, `*.tcx`, `build/` et `.env` ajoutés au `.gitignore` (branche `docs/donnees-et-gitignore`).
+- Vérification de l'historique (19 novembre 2026, `main` à `ea7a114`) : aucun GPX, FIT, CSV ni jeton dans les 9 commits contrôlés en détail sur 13, dont le commit initial. `tests/data/sortie.gpx` et `tests/data/gps.csv` n'ont jamais été commités. `tests/data/` ne contient que `fixture_overpass.geojson`. Les 4 autres commits sont des modifications de fichiers de documentation, non détaillées.
+- Risques restants : le `.gitignore` ne protège pas un fichier déjà suivi ni un dossier envoyé à la main par l'interface web ; les images de `docs/captures/` n'ont pas été examinées (elles peuvent montrer un parcours réel) ; l'origine des données des `tests/data/ride*.fit` générés par `make test` n'est pas vérifiée ; la branche locale `qwen` n'a pas été examinée.
+- Règle : avant tout envoi par l'interface web, vérifier que le dossier ne contient ni GPX, FIT ni `gps.csv`.
 
 ### D05. Carte hors ligne : repartir de zéro
 - Date : 23 octobre 2026
