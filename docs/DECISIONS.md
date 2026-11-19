@@ -25,9 +25,11 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Date : octobre 2026 
 - Décision : aucun GPX, FIT ni trace dans le dépôt.
 - Raison : une sortie commence et finit souvent au domicile.
-- Mise en oeuvre annoncée : l'ancien README indiquait que `.gitignore` exclut `*.gpx` et `*.fit`.
-- Statut de la vérification : non vérifié. Le contenu du `.gitignore` et l'historique Git n'ont jamais été examinés. La règle est une intention, pas un fait établi, jusqu'à preuve.
-- Condition avant toute publication sur GitHub : lire le `.gitignore`, contrôler l'historique de toutes les branches (GPX, FIT, TCX, `gps.csv`, jetons), et corriger avant de publier si nécessaire.
+- Constat du 19 novembre 2026 : l'ancien README annonçait que `.gitignore` excluait `*.gpx` et `*.fit`. C'était inexact : le fichier ne contenait que `.DS_Store`, `venv/`, `*.pbf` et `*.csv`.
+- Mise en oeuvre : `*.gpx`, `*.fit`, `*.tcx`, `build/` et `.env` ajoutés au `.gitignore` (branche `docs/donnees-et-gitignore`).
+- Vérification de l'historique (19 novembre 2026, `main` à `ea7a114`) : aucun GPX, FIT, CSV ni jeton dans les 9 commits contrôlés en détail sur 13, dont le commit initial. `tests/data/sortie.gpx` et `tests/data/gps.csv` n'ont jamais été commités. `tests/data/` ne contient que `fixture_overpass.geojson`. Les 4 autres commits sont des modifications de fichiers de documentation, non détaillées.
+- Risques restants : le `.gitignore` ne protège pas un fichier déjà suivi ni un dossier envoyé à la main par l'interface web ; les images de `docs/captures/` n'ont pas été examinées (elles peuvent montrer un parcours réel) ; l'origine des données des `tests/data/ride*.fit` générés par `make test` n'est pas vérifiée ; la branche locale `qwen` n'a pas été examinée.
+- Règle : avant tout envoi par l'interface web, vérifier que le dossier ne contient ni GPX, FIT ni `gps.csv`.
 
 ### D05. Carte hors ligne : repartir de zéro
 - Date : 23 octobre 2026
@@ -55,6 +57,7 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 ### D10. Écran de démarrage
 - Date : 14 novembre 2026
 - Décision : l'image `docs/ecran acceuil.jpg` devient l'écran de démarrage, aussi intégrée au simulateur. Le fichier sera renommé sans espace ni faute.
+- Avancement au 19 novembre 2026 : le module LVGL (`ui/splash.c`, `ui/splash.h`) et le convertisseur d'image (`tools/splash_to_c.py`) existent sur la branche `ecran-demarrage`, non fusionnée. L'intégration au simulateur et à `ui/app.c` n'est pas faite.
 
 ### D11. Règles de travail de Claude
 - Date : 19 novembre 2026
@@ -70,8 +73,9 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 | Sujet | Options | Éléments à réunir |
 |---|---|---|
 | Avenir de GVM1 | Archiver sous tag puis retirer, ou conserver | Seul appelant : `tests/test_map_data.c` (vérifié dans l'index) |
-| Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Lire les règles du Makefile |
+| Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Aucune règle du Makefile ne compile `tests/test_ble.c` (Makefile lu le 19 novembre 2026) |
 | Structure de `ui/app.c` | Découper en plusieurs fichiers | Mesure de la taille réelle |
-| Branches `ecran-demarrage` et `qwen` | Fusionner, continuer, archiver | Origine et contenu de chaque branche |
+| Branche `ecran-demarrage` | Fusionner, continuer ou archiver sous tag | 1 commit (`b7df9ff`, 15 novembre), 3 fichiers ajoutés (`ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py`), aucun fichier modifié, non branché dans le Makefile ni dans `ui/app.c`. Fusion sans conflit attendue |
+| Branche locale `qwen` | Pousser sur GitHub pour examen, ou abandonner | Absente de GitHub, état local inconnu. Le `Modelfile` de `main` (`qwen2.5-coder:14b`) suggère un essai avec Ollama. À décider : garder ou non le `Modelfile` |
 | Jeu de test public | GPX synthétique versionné | Choix du parcours |
 | Stratégie de nommage | Règle unique pour les fichiers et dossiers | n/a |

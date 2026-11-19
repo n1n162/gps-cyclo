@@ -2,3 +2,10 @@
 venv/
 *.pbf
 *.csv
+# Donnees personnelles : traces et fichiers d'activite, jamais versionnes
+*.gpx
+*.fit
+*.tcx
+# Fichiers generes et secrets
+build/
+.env
