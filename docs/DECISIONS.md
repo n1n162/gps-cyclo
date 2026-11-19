@@ -7,23 +7,22 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 ## Décisions prises
 
 ### D01. Matériel du prototype : Waveshare ESP32-S3-Touch-LCD-3.5
-- Date : octobre 2026 (à préciser)
+- Date : octobre 2026 
 - Décision : carte tactile 3,5 pouces 320 x 480 avec 8 Mo de PSRAM.
 - Raison : écran tactile demandé, priorité au détail de la carte.
-- Remplace : essais prévus sur ESP32 DevKit C, sans PSRAM.
 
 ### D02. Code métier en C portable dans `core/`
-- Date : octobre 2026 (à préciser)
+- Date : octobre 2026 
 - Décision : logique en C sans dépendance, testée sur PC, destinée à ESP-IDF. Interface en LVGL 9 (version 9.2.2), simulation sur PC avec SDL2.
 - Raison : tester sans matériel.
 
 ### D03. Base de cols locale
-- Date : octobre 2026 (à préciser)
+- Date : octobre 2026 
 - Décision : base locale issue d'OpenStreetMap (`gps.csv`), pas de requête OSM à chaque import de parcours.
 - Nom d'une montée : nom du col, sinon nom du lieu au sommet.
 
 ### D04. Données personnelles hors du dépôt
-- Date : octobre 2026 (à préciser)
+- Date : octobre 2026 
 - Décision : aucun GPX, FIT ni trace dans le dépôt.
 - Raison : une sortie commence et finit souvent au domicile.
 - Mise en oeuvre annoncée : l'ancien README indiquait que `.gitignore` exclut `*.gpx` et `*.fit`.
