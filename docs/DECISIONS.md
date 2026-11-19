@@ -57,6 +57,7 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 ### D10. Écran de démarrage
 - Date : 14 novembre 2026
 - Décision : l'image `docs/ecran acceuil.jpg` devient l'écran de démarrage, aussi intégrée au simulateur. Le fichier sera renommé sans espace ni faute.
+- Avancement au 19 novembre 2026 : le module LVGL (`ui/splash.c`, `ui/splash.h`) et le convertisseur d'image (`tools/splash_to_c.py`) existent sur la branche `ecran-demarrage`, non fusionnée. L'intégration au simulateur et à `ui/app.c` n'est pas faite.
 
 ### D11. Règles de travail de Claude
 - Date : 19 novembre 2026
@@ -72,8 +73,9 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 | Sujet | Options | Éléments à réunir |
 |---|---|---|
 | Avenir de GVM1 | Archiver sous tag puis retirer, ou conserver | Seul appelant : `tests/test_map_data.c` (vérifié dans l'index) |
-| Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Lire les règles du Makefile |
+| Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Aucune règle du Makefile ne compile `tests/test_ble.c` (Makefile lu le 19 novembre 2026) |
 | Structure de `ui/app.c` | Découper en plusieurs fichiers | Mesure de la taille réelle |
-| Branches `ecran-demarrage` et `qwen` | Fusionner, continuer, archiver | Origine et contenu de chaque branche |
+| Branche `ecran-demarrage` | Fusionner, continuer ou archiver sous tag | 1 commit (`b7df9ff`, 15 novembre), 3 fichiers ajoutés (`ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py`), aucun fichier modifié, non branché dans le Makefile ni dans `ui/app.c`. Fusion sans conflit attendue |
+| Branche locale `qwen` | Pousser sur GitHub pour examen, ou abandonner | Absente de GitHub, état local inconnu. Le `Modelfile` de `main` (`qwen2.5-coder:14b`) suggère un essai avec Ollama. À décider : garder ou non le `Modelfile` |
 | Jeu de test public | GPX synthétique versionné | Choix du parcours |
 | Stratégie de nommage | Règle unique pour les fichiers et dossiers | n/a |
