@@ -61,7 +61,7 @@ Complément du 20 novembre 2026 (`main` à `83d008c`) : historique des trois bra
 
 ## Points non vérifiés
 
-- Protection des données : `.gitignore` corrigé et fusionné (PR #1). Historique des trois branches distantes contrôlé en entier le 20 novembre 2026 : 18 commits, aucun fichier de données. Fichiers `tests/data/ride*.fit` : issus d'une vraie sortie, non suivis et ignorés par Git, `make test` non rejoué. Captures de `docs/captures/` : 6 sur 19 ouvertes, conservées telles quelles par décision de Nicolas (D04) ; les 13 autres restent non ouvertes.
+- Protection des données : `.gitignore` corrigé et fusionné (PR #1). Historique des trois branches distantes contrôlé en entier le 20 novembre 2026 : 18 commits, aucun fichier de données. Fichiers `tests/data/ride*.fit` : issus d'une vraie sortie, non suivis et ignorés par Git, `make test` non rejoué. Captures de `docs/captures/` : les 19 examinées une par une, conservées telles quelles par décision de Nicolas (D04).
 - Contenu de la branche locale `qwen`.
 - Contenu des documents de `docs/` antérieurs à ce chantier (`avancement.md`, `carte.md`, `carte_hors_ligne.md`, `carte_waveshare.md`, `cols.md`, `export_strava.md`, `simulateur.md`) : listés, non lus.
 - Scripts `.sh` (`sim/build_sim.sh`, `ui/build_preview.sh`, `ui/build_map_preview.sh`) : non lus.
