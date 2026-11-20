@@ -70,6 +70,14 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Date : 19 novembre 2026 (proposée, à valider)
 - Décision : `README.md` et `CLAUDE.md` à la racine, les autres documents de référence dans `docs/`. Documents de suivi à ajouter ensuite : `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`. Documentations techniques spécifiques (BLE, FIT, GPX, GVT1) créées seulement lorsque leur contenu le justifie.
 
+### D13. Retrait du `Modelfile`
+- Date : 20 novembre 2026
+- Décision : retirer `Modelfile` de la racine du dépôt (suppression dans la PR qui porte cette décision).
+- Contenu : deux lignes, `FROM qwen2.5-coder:14b` et `PARAMETER num_ctx 16384` (configuration Ollama), sans donnée personnelle.
+- Constat : ajouté le 13 novembre 2026 dans le commit `dfec269` ("ajout fichier BLE"), avec `CLAUDE.md` et les fichiers BLE. Aucune référence dans le `Makefile`, le code, le `README.md` ni `CLAUDE.md` (recherche du 20 novembre 2026).
+- Raison : sans rapport avec le firmware, non utilisé, recréable en deux lignes. Il reste consultable dans l'historique (`dfec269`).
+- Suite : le sort de la branche locale `qwen` reste à décider (tableau ci-dessous).
+
 ## Décisions à prendre
 
 | Sujet | Options | Éléments à réunir |
@@ -78,6 +86,6 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 | Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Aucune règle du Makefile ne compile `tests/test_ble.c` (Makefile lu le 19 novembre 2026) |
 | Structure de `ui/app.c` | Découper en plusieurs fichiers | Mesure de la taille réelle |
 | Branche `ecran-demarrage` | Fusionner, continuer ou archiver sous tag | 1 commit (`b7df9ff`, 15 novembre), 3 fichiers ajoutés (`ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py`), aucun fichier modifié, non branché dans le Makefile ni dans `ui/app.c`. Fusion sans conflit attendue |
-| Branche locale `qwen` | Pousser sur GitHub pour examen, ou abandonner | Absente de GitHub, état local inconnu. Le `Modelfile` de `main` (`qwen2.5-coder:14b`) suggère un essai avec Ollama. À décider : garder ou non le `Modelfile` |
+| Branche locale `qwen` | Pousser sur GitHub pour examen, ou abandonner | Absente de GitHub, état local inconnu. Le `Modelfile` (`qwen2.5-coder:14b`), retiré par D13, suggérait un essai avec Ollama |
 | Jeu de test public | GPX synthétique versionné | Choix du parcours |
 | Stratégie de nommage | Règle unique pour les fichiers et dossiers | n/a |
