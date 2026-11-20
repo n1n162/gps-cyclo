@@ -43,10 +43,10 @@ Complément du 20 novembre 2026 (`main` à `83d008c`) : historique des trois bra
 
 | Branche | État |
 |---|---|
-| `main` | `83d008c`. 17 commits. Contient la fusion de la PR #1 (`.gitignore` et documents de données personnelles) |
-| `ecran-demarrage` | Part de `1280ca9`. 1 commit (`b7df9ff`, 15 novembre) qui ajoute 3 fichiers (`tools/splash_to_c.py`, `ui/splash.c`, `ui/splash.h`) et n'en modifie aucun. En retard de 9 commits sur `main`. Fusion sans conflit attendue (fichiers distincts) |
-| `docs/donnees-et-gitignore` | Fusionnée dans `main` par la PR #1. La branche existe encore sur GitHub (`a0461ce`) |
-| `qwen` | Absente de GitHub, donc locale ou supprimée. Non examinée. Le fichier `Modelfile` de `main` (`qwen2.5-coder:14b`) suggère un essai local avec Ollama |
+| `main` | `7f25ca0`. 21 commits. Depuis l'audit (`83d008c`), seulement des fusions de PR de documentation (#2, #3) qui ne modifient que `docs/DECISIONS.md` et `docs/ETAT_DU_PROJET.md` |
+| `ecran-demarrage` | Part de `1280ca9`. 1 commit (`b7df9ff`, 15 novembre) qui ajoute 3 fichiers (`tools/splash_to_c.py`, `ui/splash.c`, `ui/splash.h`) et n'en modifie aucun. En retard de 13 commits sur `main`. Fusion sans conflit attendue (fichiers distincts) |
+| `docs/donnees-et-gitignore`, `docs/maj-documentation`, `docs/captures-verifiees` | Branches de documentation fusionnées dans `main` (PR #1, #2, #3). Elles existent encore sur GitHub |
+| `qwen` | Absente de GitHub, donc locale ou supprimée. Non examinée. Le `Modelfile` (`qwen2.5-coder:14b`) qui était à la racine de `main` suggérait un essai local avec Ollama ; il est retiré (voir `docs/DECISIONS.md`, D13) |
 
 ## Problèmes connus
 
