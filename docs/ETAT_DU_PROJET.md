@@ -1,8 +1,10 @@
 # État du projet
 
-Statut : brouillon. Référence : commit `ea7a114` de `main` (19 novembre 2026). L'analyse du code porte sur `1280ca9` ; les commits suivants ne modifient que des fichiers de documentation.
+Statut : brouillon. Référence : commit `ea7a114` de `main` (19 novembre 2026). L'analyse du code porte sur `1280ca9` ; les commits suivants ne modifient que des fichiers de documentation et le `.gitignore`.
 
 Dernière vérification : 19 novembre 2026, par Claude, en lisant GitHub (commits, branches, `.gitignore`, `Makefile`, listes de fichiers). Aucun test n'a été rejoué.
+
+Complément du 20 novembre 2026 (`main` à `83d008c`) : historique des trois branches distantes, captures de `docs/captures/` et fichiers `tests/data/ride*.fit` examinés (voir `docs/DECISIONS.md`, D04). Aucun test n'a été rejoué.
 
 ## Niveaux de preuve
 
@@ -37,13 +39,13 @@ Dernière vérification : 19 novembre 2026, par Claude, en lisant GitHub (commit
 | Écran de démarrage | `ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py` | Codé (branche `ecran-demarrage`) | Non fusionné dans `main`. Aucune modification du Makefile ni de `ui/app.c` : non branché. L'image source est `docs/ecran acceuil.jpg` |
 | Projet ESP-IDF, GNSS, carte SD, BLE réel, son, vibration, carte sur matériel | n/a | Non développé | |
 
-## Branches (19 novembre 2026)
+## Branches (20 novembre 2026)
 
 | Branche | État |
 |---|---|
-| `main` | `ea7a114`. 13 commits. Contient la documentation de ce chantier |
-| `ecran-demarrage` | Part de `1280ca9`. 1 commit (`b7df9ff`, 15 novembre) qui ajoute 3 fichiers et n'en modifie aucun. En retard de 5 commits de documentation sur `main`. Fusion sans conflit attendue (fichiers distincts) |
-| `docs/donnees-et-gitignore` | Correction du `.gitignore` et mise à jour des documents. En attente de relecture |
+| `main` | `83d008c`. 17 commits. Contient la fusion de la PR #1 (`.gitignore` et documents de données personnelles) |
+| `ecran-demarrage` | Part de `1280ca9`. 1 commit (`b7df9ff`, 15 novembre) qui ajoute 3 fichiers (`tools/splash_to_c.py`, `ui/splash.c`, `ui/splash.h`) et n'en modifie aucun. En retard de 9 commits sur `main`. Fusion sans conflit attendue (fichiers distincts) |
+| `docs/donnees-et-gitignore` | Fusionnée dans `main` par la PR #1. La branche existe encore sur GitHub (`a0461ce`) |
 | `qwen` | Absente de GitHub, donc locale ou supprimée. Non examinée. Le fichier `Modelfile` de `main` (`qwen2.5-coder:14b`) suggère un essai local avec Ollama |
 
 ## Problèmes connus
@@ -59,7 +61,7 @@ Dernière vérification : 19 novembre 2026, par Claude, en lisant GitHub (commit
 
 ## Points non vérifiés
 
-- Protection des données : le `.gitignore` a été lu le 19 novembre 2026 et ne protégeait pas les GPX, FIT et TCX (corrigé dans la branche `docs/donnees-et-gitignore`). L'historique de `main` est contrôlé sur 9 commits sur 13 (voir `docs/DECISIONS.md`, D04). Les images de `docs/captures/` et les fichiers `tests/data/ride*.fit` générés par `make test` n'ont pas été examinés.
+- Protection des données : `.gitignore` corrigé et fusionné (PR #1). Historique des trois branches distantes contrôlé en entier le 20 novembre 2026 : 18 commits, aucun fichier de données. Fichiers `tests/data/ride*.fit` : issus d'une vraie sortie, non suivis et ignorés par Git, `make test` non rejoué. Captures de `docs/captures/` : 6 sur 19 ouvertes, conservées telles quelles par décision de Nicolas (D04) ; les 13 autres restent non ouvertes.
 - Contenu de la branche locale `qwen`.
 - Contenu des documents de `docs/` antérieurs à ce chantier (`avancement.md`, `carte.md`, `carte_hors_ligne.md`, `carte_waveshare.md`, `cols.md`, `export_strava.md`, `simulateur.md`) : listés, non lus.
 - Scripts `.sh` (`sim/build_sim.sh`, `ui/build_preview.sh`, `ui/build_map_preview.sh`) : non lus.
