@@ -9,3 +9,8 @@ venv/
 # Fichiers generes et secrets
 build/
 .env
+
+# Dossiers generes ou outils locaux, jamais versionnes
+__pycache__/
+.aider*
+sim/lvgl/
