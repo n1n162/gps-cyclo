@@ -8,9 +8,9 @@ Objectif : un dépôt propre, reproductible et documenté.
 
 - Vérifier l'état réel de Git : branches, historique, `.gitignore`. Rien ne doit être publié avant cette vérification.
 - Contrôler l'absence de GPX, FIT, `gps.csv` ou jeton dans l'historique de toutes les branches.
-- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement.
-- Décider du sort des branches `ecran-demarrage` et `qwen`.
-- Ajouter un GPX synthétique versionné pour que `make test` marche sur un clone neuf.
+- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement. Rejeu partiel fait le 20 novembre 2026 dans un bac à sable Linux (`docs/TESTS.md`) ; reste `make test` complet sur la machine de Nicolas.
+- Décider du sort de la branche `ecran-demarrage` (la branche locale `qwen` est abandonnée, voir D14).
+- Ajouter un GPX synthétique versionné pour que `make test` marche sur un clone neuf, ainsi qu'un `cols_fixture.csv` synthétique pour `test_cols`.
 - Ajouter `requirements.txt` et une cible `make test-all` (tests, carte, BLE).
 - Valider puis publier les huit documents racine.
 - Renommer `docs/ecran acceuil.jpg`.

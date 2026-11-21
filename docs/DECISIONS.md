@@ -28,7 +28,7 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Constat du 19 novembre 2026 : l'ancien README annonçait que `.gitignore` excluait `*.gpx` et `*.fit`. C'était inexact : le fichier ne contenait que `.DS_Store`, `venv/`, `*.pbf` et `*.csv`.
 - Mise en oeuvre : `*.gpx`, `*.fit`, `*.tcx`, `build/` et `.env` ajoutés au `.gitignore` (branche `docs/donnees-et-gitignore`).
 - Vérification de l'historique (20 novembre 2026, `main` à `83d008c`) : les 18 commits des trois branches distantes (`main`, `ecran-demarrage`, `docs/donnees-et-gitignore`) ont été contrôlés par la liste des fichiers touchés. Aucun fichier `.fit`, `.gpx`, `.tcx`, `.csv` ni `.env` n'a jamais été ajouté. Cela remplace le contrôle partiel du 19 novembre (9 commits sur 13). `tests/data/` ne contient que `fixture_overpass.geojson`.
-- Risques restants : le `.gitignore` ne protège pas un fichier déjà suivi ni un dossier envoyé à la main par l'interface web ; la branche locale `qwen` n'a pas été examinée.
+- Risques restants : le `.gitignore` ne protège pas un fichier déjà suivi ni un dossier envoyé à la main par l'interface web ; la branche locale `qwen` n'a jamais été examinée et reste hors dépôt (D14).
 - Captures `docs/captures/` (les 19 ouvertes et examinées une par une le 20 novembre 2026) : les deux cartes de démonstration montrent une ville fictive à grille de rues. 7 captures affichent les noms de montées d'une vraie sortie (`trace`, `liste_montees`, `simulateur`, `alerte_montee_proche`, `fin_de_montee`, `montee`, `montee_auto`), ce qui rend la zone de roulage reconnaissable à l'échelle d'une région. Les 12 autres n'ont aucun nom de lieu. Aucune des 19 ne montre de nom de rue, de coordonnées, d'adresse, de nom de personne ni de date (seulement une heure), et les PNG n'ont aucune métadonnée (EXIF). Elles affichent des mesures de sortie : durée, distance, altitude, fréquence cardiaque, cadence, puissance. Dépôt public. Décision de Nicolas le 20 novembre 2026 : captures conservées telles quelles.
 - Fichiers `tests/data/ride.fit`, `ride_crash.fit` et `ride_recovered.fit` (vérifié le 20 novembre 2026 par lecture du code) : `make test` les écrit dans `tests/data/` à partir de `replay2.csv`, calculé par `tests/make_replay.py` depuis `tests/data/sortie.gpx`. Ce sont donc des données d'une vraie sortie (position, heure, fréquence cardiaque). Ils ne sont pas suivis par Git (`git ls-files`), sont couverts par `*.fit` (`git check-ignore`), et `make clean` les supprime avec `replay*.csv`, couvert par `*.csv`. Non rejoué : `make test` n'a pas été exécuté, `sortie.gpx` n'étant pas disponible.
 - Règle : avant tout envoi par l'interface web, vérifier que le dossier ne contient ni GPX, FIT ni `gps.csv`.
@@ -68,7 +68,7 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 
 ### D12. Organisation documentaire
 - Date : 19 novembre 2026 (proposée, à valider)
-- Décision : `README.md` et `CLAUDE.md` à la racine, les autres documents de référence dans `docs/`. Documents de suivi à ajouter ensuite : `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`. Documentations techniques spécifiques (BLE, FIT, GPX, GVT1) créées seulement lorsque leur contenu le justifie.
+- Décision : `README.md` et `CLAUDE.md` à la racine, les autres documents de référence dans `docs/`. Documents de suivi : `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`, ajoutés le 20 novembre 2026. Documentations techniques spécifiques (BLE, FIT, GPX, GVT1) créées seulement lorsque leur contenu le justifie.
 
 ### D13. Retrait du `Modelfile`
 - Date : 20 novembre 2026
@@ -76,7 +76,13 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Contenu : deux lignes, `FROM qwen2.5-coder:14b` et `PARAMETER num_ctx 16384` (configuration Ollama), sans donnée personnelle.
 - Constat : ajouté le 13 novembre 2026 dans le commit `dfec269` ("ajout fichier BLE"), avec `CLAUDE.md` et les fichiers BLE. Aucune référence dans le `Makefile`, le code, le `README.md` ni `CLAUDE.md` (recherche du 20 novembre 2026).
 - Raison : sans rapport avec le firmware, non utilisé, recréable en deux lignes. Il reste consultable dans l'historique (`dfec269`).
-- Suite : le sort de la branche locale `qwen` reste à décider (tableau ci-dessous).
+- Suite : la branche locale `qwen` est abandonnée (D14).
+
+### D14. Branche locale `qwen` abandonnée
+- Date : 20 novembre 2026
+- Décision : abandonner l'essai `qwen` sans examiner la branche. Rien n'est poussé sur GitHub.
+- Constat : la branche est absente de GitHub (vérifié avec `git ls-remote`), son contenu n'a jamais été examiné. Elle reste, le cas échéant, sur la machine de Nicolas, hors dépôt. La garder ou la supprimer en local est son choix.
+- Précaution : si elle est un jour poussée, contrôler son contenu avant (règle de D04 : aucune donnée personnelle ni jeton).
 
 ## Décisions à prendre
 
@@ -86,6 +92,5 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 | Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Aucune règle du Makefile ne compile `tests/test_ble.c` (Makefile lu le 19 novembre 2026) |
 | Structure de `ui/app.c` | Découper en plusieurs fichiers | Mesure de la taille réelle |
 | Branche `ecran-demarrage` | Fusionner, continuer ou archiver sous tag | 1 commit (`b7df9ff`, 15 novembre), 3 fichiers ajoutés (`ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py`), aucun fichier modifié, non branché dans le Makefile ni dans `ui/app.c`. Fusion sans conflit attendue |
-| Branche locale `qwen` | Pousser sur GitHub pour examen, ou abandonner | Absente de GitHub, état local inconnu. Le `Modelfile` (`qwen2.5-coder:14b`), retiré par D13, suggérait un essai avec Ollama |
 | Jeu de test public | GPX synthétique versionné | Choix du parcours |
 | Stratégie de nommage | Règle unique pour les fichiers et dossiers | n/a |
