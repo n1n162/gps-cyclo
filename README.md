@@ -4,7 +4,7 @@ Compteur GPS vélo fait maison, avec les fonctions utiles des Garmin, Wahoo et C
 
 ## État en bref
 
-Le code commun est écrit et des tests existent pour la plupart des modules. Rien n'a encore tourné sur le matériel, et les tests n'ont pas été rejoués lors du dernier audit.
+Le code commun est écrit et des tests existent pour la plupart des modules. Rien n'a encore tourné sur le matériel. Les tests n'ont été rejoués qu'en partie, dans un bac à sable Linux le 20 novembre 2026 (voir [docs/TESTS.md](docs/TESTS.md)).
 
 Quatre niveaux de preuve sont distingués partout dans la documentation : codé, test présent (non rejoué), rejoué, validé sur matériel. Le détail par fonctionnalité est dans [docs/ETAT_DU_PROJET.md](docs/ETAT_DU_PROJET.md).
 
@@ -44,6 +44,9 @@ La procédure complète, y compris les tests de carte, est dans [docs/ARCHITECTU
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Prochaines étapes, par ordre de priorité |
 | [docs/MATERIEL.md](docs/MATERIEL.md) | Carte, composants, contraintes électriques |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Décisions techniques datées |
+| [docs/TESTS.md](docs/TESTS.md) | Commandes de test, résultats rejoués avec date, commit et environnement |
+| [docs/BUGS_CONNUS.md](docs/BUGS_CONNUS.md) | Bugs et défauts connus, avec preuve |
+| [docs/HISTORIQUE.md](docs/HISTORIQUE.md) | Chronologie du projet |
 | [CLAUDE.md](CLAUDE.md) | Instructions pour l'assistant de développement |
 
 ## Aperçu des écrans
