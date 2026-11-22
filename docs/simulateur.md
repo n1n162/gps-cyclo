@@ -13,7 +13,7 @@ Dans le dossier du dépôt :
 
     make sim GPX=~/Desktop/sortie.gpx COLS=~/Desktop/gps.csv CARTE=~/Documents/carte.gvt
 
-- `GPX` : le parcours prévu. S'il contient des heures (une sortie enregistrée), il est aussi rejoué.
+- `GPX` : le parcours. Sans `RIDE`, c'est aussi la sortie rejouée : il doit alors contenir des heures (`<time>` sur chaque point), sinon le simulateur s'arrête avec « Sortie illisible ». La fréquence cardiaque, la cadence et la puissance sont lues si elles sont présentes.
 - `RIDE=autre.gpx` : pour rejouer une autre sortie sur ce parcours (elle doit contenir des heures).
 - `COLS` : la base de cols pour nommer les montées (facultatif). Au démarrage, le simulateur affiche combien d'entrées il a lues et signale un format non reconnu (voir `docs/cols.md`).
 - `CARTE` : un fond de carte (`.gvt`, voir `docs/carte.md`) affiché sur la page trace. Le simulateur indique quelle part du parcours la carte couvre.
@@ -32,7 +32,7 @@ La première fois, la compilation prend une à deux minutes (elle télécharge e
 Sur l'appareil : glisser à gauche ou à droite change de page, appui long sur un champ pour le changer, appui long sur la barre d'état pour régler les alertes, toucher une bannière pour l'acquitter.
 
 ## Ce qui est vérifié
-Le moteur de rejeu est testé (`make test`). Le simulateur complet (fenêtre, clics de souris réels, ouverture automatique de la page de montée, fenêtre de fin, bannières d'alerte) est vérifié par un autotest (`sh sim/build_sim.sh sortie.gpx cols.csv --selftest`), exécuté sous Linux avec le pilote vidéo factice de SDL. **Il n'a pas encore été essayé sur macOS** : si la compilation ou la fenêtre pose problème, envoie le message d'erreur.
+Le moteur de rejeu est testé (`make test`, sur un jeu fictif : voir `docs/TESTS.md`). Le simulateur complet (fenêtre, clics de souris réels, ouverture automatique de la page de montée, fenêtre de fin, bannières d'alerte) est vérifié par un autotest (`sh sim/build_sim.sh sortie.gpx cols.csv --selftest`), exécuté sous Linux avec le pilote vidéo factice de SDL. **Il n'a pas encore été essayé sur macOS** : si la compilation ou la fenêtre pose problème, envoie le message d'erreur.
 
 ## Limites
 - Les positions rejouées sont celles enregistrées, sans bruit de GPS réel.

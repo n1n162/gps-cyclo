@@ -81,15 +81,15 @@ Ce découpage sert de base à la réorganisation prévue dans `docs/ROADMAP.md`.
 
 | Cible | Action | Prérequis |
 |---|---|---|
-| `make test` | alertes, guidage, simulation, montées, noms, trace, FIT, puis `verify_fit.py` | gcc, make, python3, `garmin-fit-sdk`, `fitdecode`, `tests/data/sortie.gpx` |
+| `make test` | alertes, guidage, simulation, montées, noms, trace, FIT, puis `verify_fit.py` | gcc, make, python3, `garmin-fit-sdk`, `fitdecode`. Aucun fichier personnel : jeu fictif généré par `tests/make_synthetique.py` |
 | `make cols-format-test` | format des noms de cols | inclus dans `make test` |
-| `make nommage` | noms avec vraie base | `tests/data/gps.csv` |
+| `make nommage` | noms avec vraie base | `tests/data/gps.csv` et `tests/data/sortie.gpx` |
 | `make gvt-test` | format et conversion GVT1, rendu carte | python3 |
 | `make map-test` | ancien format GVM1 | |
 | `make sim GPX=... COLS=... CARTE=...` | simulateur interactif | SDL2, LVGL |
-| `make ui` | aperçu de l'interface | télécharge LVGL 9.2.2 |
+| `make ui` | aperçu de l'interface | télécharge LVGL 9.2.2, `tests/data/sortie.gpx` |
 
-Le contenu de `core/`, les formats de carte, le simulateur et l'interface sont conçus pour être testés sans matériel. Ces tests existent mais n'ont pas été rejoués lors de l'audit (voir `docs/ETAT_DU_PROJET.md`).
+Le contenu de `core/`, les formats de carte, le simulateur et l'interface sont conçus pour être testés sans matériel. Ces tests ont été rejoués en partie (voir `docs/TESTS.md` et `docs/ETAT_DU_PROJET.md`).
 
 ## Dépendances externes
 

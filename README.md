@@ -4,7 +4,7 @@ Compteur GPS vélo fait maison, avec les fonctions utiles des Garmin, Wahoo et C
 
 ## État en bref
 
-Le code commun est écrit et des tests existent pour la plupart des modules. Rien n'a encore tourné sur le matériel. Les tests n'ont été rejoués qu'en partie, dans un bac à sable Linux le 20 novembre 2026 (voir [docs/TESTS.md](docs/TESTS.md)).
+Le code commun est écrit et testé sur ordinateur. Rien n'a encore tourné sur le matériel. `make test` a été rejoué en entier dans un bac à sable Linux sur un jeu de test fictif (21 novembre 2026), et en partie sur le Mac de Nicolas avec sa propre sortie (voir [docs/TESTS.md](docs/TESTS.md)).
 
 Quatre niveaux de preuve sont distingués partout dans la documentation : codé, test présent (non rejoué), rejoué, validé sur matériel. Le détail par fonctionnalité est dans [docs/ETAT_DU_PROJET.md](docs/ETAT_DU_PROJET.md).
 
@@ -25,14 +25,14 @@ Carte Waveshare ESP32-S3-Touch-LCD-3.5 (écran tactile 3,5 pouces 320 x 480, 8 M
 
 Prérequis : gcc, make, python3, et `pip install garmin-fit-sdk fitdecode` pour la vérification des fichiers FIT.
 
-Placez un GPX de test, avec heures et fréquence cardiaque, dans `tests/data/sortie.gpx` (ce fichier est exclu par le `.gitignore`), puis :
+`make test` n'exige aucun fichier personnel : il génère un jeu fictif dans `tests/data/synthetique/` (sortie de 66 km en plein Atlantique, 5 montées, base de cols fabriquée). Les cibles `make nommage` et `make ui` utilisent votre propre GPX, placé dans `tests/data/sortie.gpx`, et `make nommage` votre base `tests/data/gps.csv` (ces fichiers sont exclus par le `.gitignore`).
 
-    make test          # alertes, montées, noms, positionnement, enregistrement FIT
+    make test          # alertes, montées, noms, positionnement, enregistrement FIT (jeu fictif)
     make nommage       # facultatif : noms avec une vraie base dans tests/data/gps.csv
-    make sim GPX=sortie.gpx COLS=gps.csv   # simulateur interactif (SDL2 requis)
+    make sim GPX=sortie.gpx COLS=gps.csv   # simulateur : votre sortie (avec heures) et votre vraie base de cols (SDL2 requis)
     make ui            # simulation d'une sortie (télécharge LVGL 9.2.2)
 
-La procédure complète, y compris les tests de carte, est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et `docs/simulateur.md`.
+La procédure complète, y compris les tests de carte, est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTS.md](docs/TESTS.md) et `docs/simulateur.md`.
 
 ## Documentation
 
@@ -59,4 +59,4 @@ La procédure complète, y compris les tests de carte, est dans [docs/ARCHITECTU
 
 Le dépôt ne doit contenir ni trace GPS ni fichier d'activité : une sortie commence et finit souvent chez soi. Les fichiers personnels (GPX, FIT, TCX, `gps.csv`, jetons Strava) restent en local.
 
-Le `.gitignore` exclut `*.gpx`, `*.fit`, `*.tcx`, `*.csv`, `*.pbf`, `build/` et `.env`. Il ne protège pas un fichier déjà suivi par Git, ni un dossier envoyé à la main par l'interface web : vérifier son contenu avant chaque envoi. Le détail de la vérification faite le 19 novembre 2026 est dans `docs/DECISIONS.md` (D04).
+Le `.gitignore` exclut `*.gpx`, `*.fit`, `*.tcx`, `*.csv`, `*.pbf`, `build/`, `.env`, `__pycache__/`, `.aider*` et `sim/lvgl/`. Il ne protège pas un fichier déjà suivi par Git, ni un dossier envoyé à la main par l'interface web : vérifier son contenu avant chaque envoi. Le détail de la vérification faite le 19 novembre 2026 est dans `docs/DECISIONS.md` (D04).
