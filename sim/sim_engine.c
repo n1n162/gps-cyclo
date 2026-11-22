@@ -187,12 +187,17 @@ void sim_seek_pos(sim_t *s, float pos_m)
 void sim_next_climb(sim_t *s, int dir)
 {
     float p = s->pos_m[s->idx];
+    /* sim_seek_pos se place sur le premier point a la distance demandee, donc jusqu'a un pas plus loin.
+     * Pour 'precedente', on ignore cet ecart (sinon on retombe sur la meme montee et on reste bloque). */
+    float slack = s->idx > 0 ? p - s->pos_m[s->idx - 1] : 0.0f;
+    if (slack < 1.0f) slack = 1.0f;
+    if (slack > 50.0f) slack = 50.0f;
     if (dir > 0) {
         for (int i = 0; i < s->n_climbs; i++)
             if (s->climbs[i].start_m - 500.0f > p + 1.0f) { sim_seek_pos(s, s->climbs[i].start_m - 500.0f); return; }
     } else {
         for (int i = s->n_climbs - 1; i >= 0; i--)
-            if (s->climbs[i].start_m - 500.0f < p - 1.0f) { sim_seek_pos(s, s->climbs[i].start_m - 500.0f); return; }
+            if (s->climbs[i].start_m - 500.0f < p - slack) { sim_seek_pos(s, s->climbs[i].start_m - 500.0f); return; }
         sim_seek_row(s, 0);
     }
 }

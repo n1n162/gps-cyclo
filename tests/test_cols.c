@@ -15,7 +15,7 @@ static void check(const char *label, const char *got, const char *want)
     if (!ok) { printf("%s)\n", want[0] ? want : "(sans nom)"); fails++; }
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     /* 1. grammaire des noms de lieux */
     printf("GRAMMAIRE\n");
@@ -34,22 +34,27 @@ int main(void)
     printf("  %d entrees lues (attendu 3), %s | %s | %s\n", n, cols_name(&d1, 0), cols_name(&d1, 1), cols_name(&d1, 2));
     if (n != 3 || d1.e[1].ele != COLS_NO_ELE || d1.e[0].ele != 1179) { puts("  ECHEC"); fails++; } else puts("  OK");
 
-    /* 3. nommage des montees de ta sortie */
-    printf("NOMMAGE DES MONTEES (base de test)\n");
-    fctx cx = { fopen("sortie.gpx", "rb") };
+    /* 3. nommage des montees du jeu synthetique (tests/make_synthetique.py) : sortie fictive et base de cols fabriquee */
+    printf("NOMMAGE DES MONTEES (jeu synthetique)\n");
+    const char *gpx = argc > 1 ? argv[1] : "synthetique.gpx", *csv = argc > 2 ? argv[2] : "cols.csv";
+    fctx cx = { fopen(gpx, "rb") };
+    if (!cx.f) { perror(gpx); puts("ECHEC : fichier de test absent (il est genere par make test)"); return 1; }
     static float X[20000], Y[20000], E[20000], W[20000];
     route_t r; route_init(&r, X, Y, E, 20000, 10.0f); gpx_load(rd, &cx, &r); fclose(cx.f);
     climb_cfg_t cfg; climb_cfg_default(&cfg); profile_smooth(E, r.n, cfg.smooth_half, W);
     static climb_t cl[64]; int k = climb_detect(E, r.n, W, &cfg, cl, 64);
 
     static cols_entry_t ent[4000]; static char pool[100000]; cols_db_t db; cols_init(&db, ent, 4000, pool, sizeof pool);
-    fctx cf = { fopen("cols_fixture.csv", "rb") };
+    fctx cf = { fopen(csv, "rb") };
+    if (!cf.f) { perror(csv); puts("ECHEC : fichier de test absent (il est genere par make test)"); return 1; }
     int ne = cols_load(rd, &cf, &db); fclose(cf.f);
     printf("  base : %d entrees\n", ne);
     cols_cfg_t cc; cols_cfg_default(&cc);
     int named = cols_name_climbs(&db, &cc, &r, E, cl, k);
-    const char *want[7] = {"Col du Mont Tournier", "Mont\xC3\xA9" "e du Collet", "", "Mont\xC3\xA9" "e des Abrets", "", "", "Mont\xC3\xA9" "e de Burcin"};
-    for (int i = 0; i < k && i < 7; i++) { char lab[40]; snprintf(lab, sizeof lab, "montee %d (%.1f km, %.1f %%)", i + 1, (double)(cl[i].length_m / 1000.0f), (double)cl[i].avg_grade_pct); check(lab, cl[i].name, want[i]); }
+    printf("  %d montees detectees (attendu 5)\n", k);
+    if (k != 5) { puts("  ECHEC"); fails++; }
+    const char *want[5] = {"Col des Essais", "Mont\xC3\xA9" "e de Marnezac", "Col de la Pierre Fictive", "", "Mont\xC3\xA9" "e des Rochettes"};
+    for (int i = 0; i < k && i < 5; i++) { char lab[40]; snprintf(lab, sizeof lab, "montee %d (%.1f km, %.1f %%)", i + 1, (double)(cl[i].length_m / 1000.0f), (double)cl[i].avg_grade_pct); check(lab, cl[i].name, want[i]); }
     printf("  %d montees nommees sur %d\n", named, k);
     printf("%s\n", fails ? "ECHECS" : "TOUS LES TESTS REUSSIS");
     return fails != 0;

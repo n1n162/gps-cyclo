@@ -1,9 +1,11 @@
 # Tests sur ordinateur du code commun (montees, GPX, positionnement, FIT, noms de cols).
-# Il faut un fichier GPX de test avec heures et frequence cardiaque : tests/data/sortie.gpx (non publie, voir README).
+# make test s'appuie sur un jeu fictif genere par tests/make_synthetique.py : aucun fichier personnel n'est necessaire.
+# Les cibles ui et nommage utilisent encore tests/data/sortie.gpx (non publie, voir README).
 CC ?= gcc
 CFLAGS ?= -O2 -Wall -Wextra -Icore
 BUILD = build
 DATA = tests/data
+SYN = tests/data/synthetique
 
 .PHONY: all test ui sim nommage map-test gvt-test cols-format-test clean
 all: test
@@ -77,15 +79,22 @@ $(DATA)/sortie.gpx:
 $(DATA)/replay.csv $(DATA)/replay2.csv: $(DATA)/sortie.gpx tests/make_replay.py
 	cd $(DATA) && python3 ../make_replay.py sortie.gpx
 
-test: cols-format-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(DATA)/replay.csv $(DATA)/replay2.csv
+# Jeu de test fictif (position en plein Atlantique, 66 km, 5 montees) et base de cols fabriquee.
+$(SYN)/synthetique.gpx $(SYN)/cols.csv: tests/make_synthetique.py
+	mkdir -p $(SYN) && cd $(SYN) && python3 ../../make_synthetique.py
+
+$(SYN)/replay.csv $(SYN)/replay2.csv: $(SYN)/synthetique.gpx tests/make_replay.py
+	cd $(SYN) && python3 ../../make_replay.py synthetique.gpx
+
+test: cols-format-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(SYN)/replay.csv $(SYN)/replay2.csv $(SYN)/cols.csv
 	$(BUILD)/test_alerts
 	$(BUILD)/test_guidance
-	cd $(DATA) && ../../$(BUILD)/test_sim sortie.gpx
-	cd $(DATA) && ../../$(BUILD)/test_climb sortie.gpx
-	cd $(DATA) && ../../$(BUILD)/test_cols
-	cd $(DATA) && ../../$(BUILD)/test_route sortie.gpx
-	cd $(DATA) && ../../$(BUILD)/test_fit
-	cd $(DATA) && python3 ../verify_fit.py
+	cd $(SYN) && ../../../$(BUILD)/test_sim synthetique.gpx
+	cd $(SYN) && ../../../$(BUILD)/test_climb synthetique.gpx
+	cd $(SYN) && ../../../$(BUILD)/test_cols synthetique.gpx cols.csv
+	cd $(SYN) && ../../../$(BUILD)/test_route synthetique.gpx
+	cd $(SYN) && ../../../$(BUILD)/test_fit
+	cd $(SYN) && python3 ../../verify_fit.py
 
 # Simulation d'une sortie sur PC (aperçu des écrans, ouverture automatique de la montée, toucher). Télécharge LVGL 9.2.2.
 ui: $(DATA)/replay2.csv
@@ -102,4 +111,4 @@ nommage: $(BUILD)/name_real
 	cd $(DATA) && ../../$(BUILD)/name_real filtre 0
 
 clean:
-	rm -rf $(BUILD) $(DATA)/ride*.fit $(DATA)/replay*.csv
+	rm -rf $(BUILD) $(DATA)/ride*.fit $(DATA)/replay*.csv $(SYN)

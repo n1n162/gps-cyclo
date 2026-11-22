@@ -30,7 +30,8 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Vérification de l'historique (20 novembre 2026, `main` à `83d008c`) : les 18 commits des trois branches distantes (`main`, `ecran-demarrage`, `docs/donnees-et-gitignore`) ont été contrôlés par la liste des fichiers touchés. Aucun fichier `.fit`, `.gpx`, `.tcx`, `.csv` ni `.env` n'a jamais été ajouté. Cela remplace le contrôle partiel du 19 novembre (9 commits sur 13). `tests/data/` ne contient que `fixture_overpass.geojson`.
 - Risques restants : le `.gitignore` ne protège pas un fichier déjà suivi ni un dossier envoyé à la main par l'interface web ; la branche locale `qwen` n'a jamais été examinée et reste hors dépôt (D14).
 - Captures `docs/captures/` (les 19 ouvertes et examinées une par une le 20 novembre 2026) : les deux cartes de démonstration montrent une ville fictive à grille de rues. 7 captures affichent les noms de montées d'une vraie sortie (`trace`, `liste_montees`, `simulateur`, `alerte_montee_proche`, `fin_de_montee`, `montee`, `montee_auto`), ce qui rend la zone de roulage reconnaissable à l'échelle d'une région. Les 12 autres n'ont aucun nom de lieu. Aucune des 19 ne montre de nom de rue, de coordonnées, d'adresse, de nom de personne ni de date (seulement une heure), et les PNG n'ont aucune métadonnée (EXIF). Elles affichent des mesures de sortie : durée, distance, altitude, fréquence cardiaque, cadence, puissance. Dépôt public. Décision de Nicolas le 20 novembre 2026 : captures conservées telles quelles.
-- Fichiers `tests/data/ride.fit`, `ride_crash.fit` et `ride_recovered.fit` (vérifié le 20 novembre 2026 par lecture du code) : `make test` les écrit dans `tests/data/` à partir de `replay2.csv`, calculé par `tests/make_replay.py` depuis `tests/data/sortie.gpx`. Ce sont donc des données d'une vraie sortie (position, heure, fréquence cardiaque). Ils ne sont pas suivis par Git (`git ls-files`), sont couverts par `*.fit` (`git check-ignore`), et `make clean` les supprime avec `replay*.csv`, couvert par `*.csv`. Non rejoué : `make test` n'a pas été exécuté, `sortie.gpx` n'étant pas disponible.
+- Fichiers `tests/data/ride.fit`, `ride_crash.fit` et `ride_recovered.fit` (vérifié le 20 novembre 2026 par lecture du code) : `make test` les écrivait dans `tests/data/` à partir de `replay2.csv`, calculé par `tests/make_replay.py` depuis `tests/data/sortie.gpx`. C'étaient donc des données d'une vraie sortie (position, heure, fréquence cardiaque). Ils ne sont pas suivis par Git (`git ls-files`), sont couverts par `*.fit` (`git check-ignore`), et `make clean` les supprime avec `replay*.csv`, couvert par `*.csv`.
+- Depuis le 21 novembre 2026 (branche `tests/jeu-synthetique`, D15), `make test` n'écrit plus de données personnelles : ses `ride*.fit` et `replay*.csv` sont écrits dans `tests/data/synthetique/` à partir du jeu fictif. `make ui` écrit encore `tests/data/replay2.csv` depuis la sortie personnelle (ignoré par `*.csv`).
 - Règle : avant tout envoi par l'interface web, vérifier que le dossier ne contient ni GPX, FIT ni `gps.csv`.
 
 ### D05. Carte hors ligne : repartir de zéro
@@ -84,6 +85,14 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 - Constat : la branche est absente de GitHub (vérifié avec `git ls-remote`), son contenu n'a jamais été examiné. Elle reste, le cas échéant, sur la machine de Nicolas, hors dépôt. La garder ou la supprimer en local est son choix.
 - Précaution : si elle est un jour poussée, contrôler son contenu avant (règle de D04 : aucune donnée personnelle ni jeton).
 
+### D15. Jeu de test fictif pour `make test`
+- Date : 21 novembre 2026
+- Décision : `make test` s'appuie sur un jeu fictif généré par `tests/make_synthetique.py` (sortie de 66 km en plein Atlantique, 5 montées, base de cols fabriquée), pas sur la sortie personnelle de Nicolas. Le jeu n'est pas versionné : il est généré dans `tests/data/synthetique/` (ignoré par Git).
+- Le simulateur n'est pas concerné : il reste utilisable avec n'importe quelle sortie contenant des heures et avec la vraie base `gps.csv` (`make sim GPX=... COLS=...`). `make ui` et `make nommage` gardent leurs fichiers personnels (B10).
+- Raison : sur le Mac de Nicolas, `make test` échouait cinq fois (`test_sim`), car les tests exigent une sortie de plus d'une heure, deux montées et 50 km, et attendaient sept noms de montées propres à la sortie de référence (B08). Une base fabriquée permet aussi de vérifier des cas précis : col refusé car trop haut, lieu trop loin, type ignoré.
+- Conséquences : `tests/test_cols.c` attend les noms du jeu fictif et reçoit ses fichiers en arguments (B02). `cols_fixture.csv` n'est plus utilisé.
+- Un défaut du simulateur découvert grâce à ce jeu est corrigé dans un commit séparé (B09, `e5263a7`). Ce correctif modifie du code existant et a été fait sans accord explicite préalable (règle 2 de `CLAUDE.md`) : il reste à valider par Nicolas.
+
 ## Décisions à prendre
 
 | Sujet | Options | Éléments à réunir |
@@ -92,5 +101,5 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 | Décodeur BLE (`core/ble_decode`) | Brancher son test dans une cible Make et l'intégrer à l'application, ou archiver | Appelé seulement par son test. Aucune règle du Makefile ne compile `tests/test_ble.c` (Makefile lu le 19 novembre 2026) |
 | Structure de `ui/app.c` | Découper en plusieurs fichiers | Mesure de la taille réelle |
 | Branche `ecran-demarrage` | Fusionner, continuer ou archiver sous tag | 1 commit (`b7df9ff`, 15 novembre), 3 fichiers ajoutés (`ui/splash.c`, `ui/splash.h`, `tools/splash_to_c.py`), aucun fichier modifié, non branché dans le Makefile ni dans `ui/app.c`. Fusion sans conflit attendue |
-| Jeu de test public | GPX synthétique versionné | Choix du parcours |
+| Jeux de test pour `make ui` et `make nommage` | Les ramener au jeu fictif, ou garder les fichiers personnels | B10 : `ui` n'a pas besoin de la vraie base, `nommage` si |
 | Stratégie de nommage | Règle unique pour les fichiers et dossiers | n/a |

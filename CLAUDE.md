@@ -35,7 +35,7 @@ Ne jamais ajouter au dépôt : fichiers `.gpx`, `.fit`, `.tcx`, `tests/data/gps.
 
 ## Compiler et tester
 
-    make test          # tests principaux (nécessite tests/data/sortie.gpx, fourni par Nicolas)
+    make test          # tests principaux (jeu fictif généré dans tests/data/synthetique/, aucun fichier personnel)
     make gvt-test      # carte GVT1 (hors make test)
     make map-test      # ancien format GVM1 (hors make test)
     make sim GPX=sortie.gpx COLS=gps.csv   # simulateur SDL2

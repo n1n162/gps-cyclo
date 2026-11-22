@@ -48,6 +48,6 @@ Si `gps.csv` existe déjà, les nouveaux points y sont ajoutés (mode incrément
 Mesures sur un fichier de test de 800 000 nœuds : 3,2 s, contre 10,7 s pour la version sans sortie anticipée des nœuds sans tag (les temps sur la France entière ne sont pas mesurés). Les tests ont utilisé un petit fichier `.pbf` construit pour l'occasion, pas un vrai extrait.
 
 ## À savoir
-- `cols_fixture.csv` est une base de test fabriquée à partir de ta sortie, utilisée seulement par `test_cols.c`. La vraie base est ton export (`gps.csv`).
+- `tests/data/synthetique/cols.csv` est une base de test fabriquée par `tests/make_synthetique.py` (données fictives), utilisée seulement par `test_cols.c`. La vraie base est ton export (`gps.csv`) : `make nommage` et le simulateur l'utilisent.
 - Un petit col absent d'OpenStreetMap restera sans nom.
 - Données © les contributeurs d'OpenStreetMap, licence ODbL : le crédit doit apparaître dans l'appareil ou sa documentation.
