@@ -8,14 +8,14 @@ Objectif : un dépôt propre, reproductible et documenté.
 
 - Vérifier l'état réel de Git : branches, historique, `.gitignore`. Rien ne doit être publié avant cette vérification.
 - Contrôler l'absence de GPX, FIT, `gps.csv` ou jeton dans l'historique de toutes les branches.
-- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement. Rejeu partiel fait le 20 novembre 2026 dans un bac à sable Linux (`docs/TESTS.md`) ; reste `make test` complet sur la machine de Nicolas.
+- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement. Fait le 21 novembre 2026 : `make test` complet dans un bac à sable Linux sur le jeu fictif (`docs/TESTS.md`). Reste `make test` avec le jeu fictif, `make gvt-test` et `make map-test` sur le Mac de Nicolas.
 - Décider du sort de la branche `ecran-demarrage` (la branche locale `qwen` est abandonnée, voir D14).
-- Ajouter un GPX synthétique versionné pour que `make test` marche sur un clone neuf, ainsi qu'un `cols_fixture.csv` synthétique pour `test_cols`.
+- Jeu de test fictif pour que `make test` marche sur un clone neuf : fait le 21 novembre 2026 (D15). Reste à étudier l'extension aux cibles `ui` et `nommage` (B10).
 - Ajouter `requirements.txt` et une cible `make test-all` (tests, carte, BLE).
 - Valider puis publier les huit documents racine.
 - Renommer `docs/ecran acceuil.jpg`.
 
-Critère de fin : un clone neuf compile et passe `make test-all` sans fichier personnel, et les premiers résultats rejoués sont consignés.
+Critère de fin : un clone neuf compile et passe `make test-all` sans fichier personnel, et les premiers résultats rejoués sont consignés. Pour `make test`, ce critère est atteint dans un bac à sable Linux.
 
 ## Phase 1. Corriger et consolider sur PC
 
