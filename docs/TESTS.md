@@ -70,7 +70,7 @@ Scripts de préparation : `make_synthetique.py` (jeu fictif), `make_replay.py` (
 | Format de `gps.csv` | 13 vérifications OK |
 | Alertes | 48 lignes OK, tous les tests réussis |
 | Guidage | OK |
-| Moteur du simulateur | 19 lignes OK. Position sur le parcours : écart moyen 1,3 m, maximal 5,3 m (seuils 8 m et 60 m). Montaisons suivante et précédente OK, aller à 50 km OK |
+| Moteur du simulateur | 19 lignes OK. Position sur le parcours : écart moyen 1,3 m, maximal 5,3 m (seuils 8 m et 60 m). Montées suivante et précédente OK, aller à 50 km OK |
 | Noms de cols | 14 lignes OK (8 de grammaire, 1 de lecture CSV, 5 montées). 5 montées détectées, 4 nommées, 1 sans nom comme attendu |
 | Montées et trace | `test_climb` : 5 montées sur 66,0 km. `test_route` : exécuté, sans assertion |
 | FIT | `ride.fit` : 13 839 enregistrements, 346 433 octets. Relu par le SDK Garmin (`is_fit` vrai, intégrité vraie, 0 erreur) et par `fitdecode` (CRC vérifié) : écarts maximaux nuls sur le temps, la distance (0,00 m) et la FC, 0,10 m sur l'altitude. Récupération après coupure : 6 989 points sur 7 000 écrits, 6 989 enregistrements relus |

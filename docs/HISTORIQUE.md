@@ -30,7 +30,7 @@ Le dépôt commence le 4 novembre 2026 par un import de 96 fichiers (33 615 lign
 | 21 novembre 2026 | `6329ee4` | Branche `tests/jeu-synthetique` : jeu de test fictif pour `make test` (D15, B02, B03, B08) |
 | 21 novembre 2026 | `02def03` | Branche `tests/jeu-synthetique` : `.gitignore` étendu (B07) |
 | 21 novembre 2026 | `2fcd58e` | Branche `tests/jeu-synthetique` : README, `CLAUDE.md`, `ARCHITECTURE.md`, `cols.md`, `simulateur.md` alignés |
-| 21 novembre 2026 | commit de documentation suivant, même branche | `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`, `ETAT_DU_PROJET.md`, `DECISIONS.md` (D15), `ROADMAP.md` |
+| 21 novembre 2026 | `bd81964`, `9802c19` | Branche `tests/jeu-synthetique` : `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`, `ROADMAP.md`, `ETAT_DU_PROJET.md`, `DECISIONS.md` (D15) |
 
 ## Remise en ordre du dépôt (19 et 21 novembre 2026)
 
