@@ -38,7 +38,8 @@ $(BUILD)/test_osm_guidance: tests/test_osm_guidance.c core/osm_guidance.c core/o
 
 gcr1-test: $(BUILD)/test_osm_guidance
 	$(BUILD)/test_osm_guidance
-	python3 -m unittest tests/test_route_to_gcr1.py tests/test_gpx_to_osm_route.py
+	python3 tests/test_route_to_gcr1.py
+	python3 tests/test_gpx_to_osm_route.py
 
 $(BUILD)/name_real: tests/name_real.c core/cols.c core/climb.c core/route.c | $(BUILD)
 	$(CC) $(CFLAGS) $^ -lm -o $@
