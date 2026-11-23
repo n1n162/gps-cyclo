@@ -1,6 +1,6 @@
 # Tests
 
-Statut : brouillon. Dernière mise à jour : 21 novembre 2026, branche `tests/jeu-synthetique` (code au commit `02def03`), base `main` à `44f51bc`.
+Statut : brouillon. Dernière mise à jour : 22 novembre 2026, `main` à `65ad3c0`.
 
 Ce document explique comment lancer les tests et consigne chaque rejeu avec sa date, son commit et son environnement (règle de `CLAUDE.md`). Le niveau de preuve de chaque fonctionnalité est dans `docs/ETAT_DU_PROJET.md`.
 
@@ -8,7 +8,7 @@ Ce document explique comment lancer les tests et consigne chaque rejeu avec sa d
 
 | Commande | Ce qu'elle lance | Fichiers personnels requis |
 |---|---|---|
-| `make test` | Alertes, guidage, format de `gps.csv`, moteur du simulateur, montées, noms de cols, trace, FIT, puis `verify_fit.py`, sur un jeu fictif généré | aucun (python3, `garmin-fit-sdk` et `fitdecode` requis) |
+| `make test` | Alertes, guidage, format de `gps.csv`, moteur du simulateur, montées, noms de cols, trace, FIT, puis `verify_fit.py`, sur un jeu fictif généré | aucun (python3, `garmin-fit-sdk` et `fitdecode` requis, sinon arrêt à `verify_fit.py`, voir B12) |
 | `make cols-format-test` | Lecture du format de `gps.csv` | aucun |
 | `make gvt-test` | Carte GVT1 (format, lecture, vue, remplissage, tracé de lignes) et conversion Overpass | aucun |
 | `make map-test` | Ancien format de carte GVM1 | aucun (`tests/data/fixture_overpass.geojson` est versionné) |
@@ -59,10 +59,10 @@ Scripts de préparation : `make_synthetique.py` (jeu fictif), `make_replay.py` (
 
 ## Résultats consignés
 
-### `make test` complet sur le jeu fictif, 21 novembre 2026
+### `make test` complet sur le jeu fictif, bac à sable Linux, 21 novembre 2026
 
 - Environnement : bac à sable Linux de Claude, **pas la machine de Nicolas**. Ubuntu 24.04.5 LTS, gcc 13.3.0, Python 3.12.3, GNU Make 4.3, `garmin-fit-sdk` 21.222.0, `fitdecode` 0.11.0, options `-O2 -Wall -Wextra`.
-- Commit : `02def03` (branche `tests/jeu-synthetique`), clone neuf, aucun fichier personnel. Après le test, `git status` est vide : les fichiers générés sont ignorés.
+- Commit : `02def03` (branche `tests/jeu-synthetique`, avant sa fusion), clone neuf, aucun fichier personnel. Après le test, `git status` est vide : les fichiers générés sont ignorés.
 
 | Test | Résultat |
 |---|---|
@@ -74,6 +74,30 @@ Scripts de préparation : `make_synthetique.py` (jeu fictif), `make_replay.py` (
 | Noms de cols | 14 lignes OK (8 de grammaire, 1 de lecture CSV, 5 montées). 5 montées détectées, 4 nommées, 1 sans nom comme attendu |
 | Montées et trace | `test_climb` : 5 montées sur 66,0 km. `test_route` : exécuté, sans assertion |
 | FIT | `ride.fit` : 13 839 enregistrements, 346 433 octets. Relu par le SDK Garmin (`is_fit` vrai, intégrité vraie, 0 erreur) et par `fitdecode` (CRC vérifié) : écarts maximaux nuls sur le temps, la distance (0,00 m) et la FC, 0,10 m sur l'altitude. Récupération après coupure : 6 989 points sur 7 000 écrits, 6 989 enregistrements relus |
+
+### `make test` complet sur le Mac de Nicolas, jeu fictif, 22 novembre 2026
+
+- Environnement : MacBook Air de Nicolas, macOS 26.6.2, Apple clang 21.0.0, Python 3.9.6 (outils en ligne de commande d'Apple), pip 21.2.4. `garmin-fit-sdk` 21.222.0 et `fitdecode` 0.11.0 ont été installés pour l'utilisateur au cours du test. Le dossier de travail contient aussi les fichiers personnels de Nicolas, que `make test` n'utilise plus.
+- Premier passage, sommet de la branche `tests/jeu-synthetique` (hash non affiché dans la sortie, déduit : `4d2ffed`, code identique à `02def03`) : tout réussit jusqu'à `test_fit`, puis `verify_fit.py` s'arrête (code retour 1) sur `No module named 'garmin_fit_sdk'` : bibliothèque non installée (B12).
+- Second passage, `main` à `65ad3c0` (PR #6 fusionnée), après installation des bibliothèques : les 20 dernières lignes montrent `verify_fit.py` terminé, sans erreur ni ligne d'erreur de `make`. Le code retour n'a pas été relevé (sortie redirigée vers `tail`) et le début de cette sortie n'a pas été conservé.
+- Après le test, `git status --short` est vide.
+
+| Test | Résultat |
+|---|---|
+| Format de `gps.csv` | 13 vérifications OK |
+| Alertes | Tous les tests réussis |
+| Guidage | OK |
+| Moteur du simulateur | 19 lignes OK. Écart de position moyen 1,3 m, maximal 5,3 m. Montées suivante et précédente OK, aller à 50 km OK |
+| Noms de cols | 14 lignes OK. 5 montées détectées, 4 nommées, 1 sans nom comme attendu |
+| Montées | `test_climb` : 5 montées sur 66,0 km |
+| `test_route` (sans assertion) | Scénario A : erreur de distance moyenne 3,0 m, 95 % sous 7,3 m, maximale 11,2 m. Scénario B (400 positions sautenées) : la position reste figée 5 s, avec une erreur d'environ 940 m, puis se corrige (erreur de 1 m). Scénario C (décalage de 120 m) : 200 positions sur 200 détectées hors parcours |
+| FIT, écriture | `ride.fit` : 13 839 enregistrements, 346 433 octets. Récupération après coupure : 6 989 points sur 7 000 écrits |
+| FIT, `verify_fit.py` (second passage) | `ride.fit` : écarts maximaux nuls sur le temps, la distance (0,00 m), la FC et la cadence, 0,10 m sur l'altitude. Session : 13 937 s et 66 000,0 m comme attendu, D+ 1 493 m et D- 1 395 m comme attendu, 2 tours. Fichier récupéré : SDK Garmin `is_fit` vrai, intégrité vraie, 0 erreur de décodage, 6 989 enregistrements relus aussi par `fitdecode` (CRC vérifié), 31 859,8 m comme attendu |
+
+Observations :
+
+- Les valeurs déterministes sont identiques à celles du bac à sable Linux : écarts de position, nombre d'enregistrements FIT, taille du fichier, points récupérés. Seule l'heure affichée par `test_sim` change (09:50 contre 08:50), parce qu'elle suit le fuseau horaire local ; le test vérifie seulement qu'elle est inférieure à 24.
+- Pour le fichier récupéré, `verify_fit.py` affiche D+ 792 m contre 794 m attendus et D- 482 m contre 483 m. Ce script n'a pas de seuil d'échec. Cause non analysée.
 
 ### `make test` sur le Mac de Nicolas, 21 novembre 2026 (avant le jeu fictif)
 
@@ -104,15 +128,17 @@ Cause des 5 échecs, lue dans `tests/test_sim.c` (lignes 29 à 59) : le test exi
 | Date | Commit | Machine | `make test` | `make gvt-test` | `make map-test` | Remarques |
 |---|---|---|---|---|---|---|
 | 21 novembre 2026 | `44f51bc` | MacBook Air, macOS 26.6.2, Apple clang 21.0.0 | arrêté à `test_sim` (5 échecs, données) | à faire | à faire | avant le jeu fictif |
-| à faire | | | | | | `make test` avec le jeu fictif, après fusion |
+| 22 novembre 2026 | `65ad3c0` | MacBook Air, macOS 26.6.2, Apple clang 21.0.0, Python 3.9.6 | réussi, `verify_fit.py` inclus après installation des bibliothèques (code retour non relevé) | à faire | à faire | jeu fictif |
 
 ### Comment consigner un rejeu
 
 Une ligne par rejeu : date, commit complet, machine ou bac à sable, versions du compilateur et de Python, commande, code retour, nombre de lignes OK et d'échecs. Ne rien conclure d'un test qui n'a pas pu s'exécuter.
 
-## Constats du 21 novembre 2026
+## Constats
 
-1. Les tests étaient calés sur la sortie de référence : sur la sortie de Nicolas, `test_sim` échouait cinq fois et `test_cols` exigeait un fichier absent. Corrigé par le jeu fictif (`docs/BUGS_CONNUS.md`, B03 et B08).
-2. « Montée précédente » restait bloquée : `sim_seek_pos` se place sur le premier point à la distance demandée, jusqu'à un pas plus loin (5 à 7 m ici), et `sim_next_climb` ne tolérait que 1 m. Constaté avec un programme de contrôle jetable : la position restait à 25 907 m à chaque appui. Après correction : 43 940 m, 25 907 m, 16 946 m, 2 925 m puis 0 m. Défaut du code, présent avec n'importe quel GPX (B09, commit `e5263a7`).
+1. Les tests étaient calés sur la sortie de référence : sur la sortie de Nicolas, `test_sim` échouait cinq fois et `test_cols` exigeait un fichier absent. Corrigé par le jeu fictif (`docs/BUGS_CONNUS.md`, B03 et B08), rejoué sur le Mac le 22 novembre 2026.
+2. « Montée précédente » restait bloquée : `sim_seek_pos` se place sur le premier point à la distance demandée, jusqu'à un pas plus loin (5 à 7 m ici), et `sim_next_climb` ne tolérait que 1 m. Constaté avec un programme de contrôle jetable : la position restait à 25 907 m à chaque appui. Après correction : 43 940 m, 25 907 m, 16 946 m, 2 925 m puis 0 m. Défaut du code, présent avec n'importe quel GPX (B09, commit `e5263a7`). Test de non-régression : `test_sim` sur le Mac et sur Linux.
 3. `test_cols` plantait quand ses fichiers manquaient. Il affiche maintenant un message et rend le code 1 (B02).
 4. `test_ble` réussit quand on le compile à la main, mais aucune règle du Makefile ne le lance (B04).
+5. `make test` s'arrête sur une trace Python brute quand `garmin-fit-sdk` ou `fitdecode` manque. Reproduit sur le Mac le 22 novembre 2026 (B12).
+6. Le fichier FIT récupéré affiche un D+ de 792 m contre 794 m attendus, sans que le script échoue (voir les observations ci-dessus).
