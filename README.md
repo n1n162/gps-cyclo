@@ -4,7 +4,7 @@ Compteur GPS vélo fait maison, avec les fonctions utiles des Garmin, Wahoo et C
 
 ## État en bref
 
-Le code commun est écrit et testé sur ordinateur. Rien n'a encore tourné sur le matériel. `make test` a été rejoué en entier dans un bac à sable Linux sur un jeu de test fictif (21 novembre 2026), et en partie sur le Mac de Nicolas avec sa propre sortie (voir [docs/TESTS.md](docs/TESTS.md)).
+Le code commun est écrit et testé sur ordinateur. Rien n'a encore tourné sur le matériel. `make test` s'appuie sur un jeu de test fictif : il a été rejoué en entier dans un bac à sable Linux (21 novembre 2026) puis sur le Mac de Nicolas (22 novembre 2026), voir [docs/TESTS.md](docs/TESTS.md).
 
 Quatre niveaux de preuve sont distingués partout dans la documentation : codé, test présent (non rejoué), rejoué, validé sur matériel. Le détail par fonctionnalité est dans [docs/ETAT_DU_PROJET.md](docs/ETAT_DU_PROJET.md).
 
@@ -23,7 +23,7 @@ Carte Waveshare ESP32-S3-Touch-LCD-3.5 (écran tactile 3,5 pouces 320 x 480, 8 M
 
 ## Lancer les tests
 
-Prérequis : gcc, make, python3, et `pip install garmin-fit-sdk fitdecode` pour la vérification des fichiers FIT.
+Prérequis : gcc, make, python3, et `pip install garmin-fit-sdk fitdecode` pour la vérification des fichiers FIT (sans eux, `make test` s'arrête à `verify_fit.py` avec une erreur Python).
 
 `make test` n'exige aucun fichier personnel : il génère un jeu fictif dans `tests/data/synthetique/` (sortie de 66 km en plein Atlantique, 5 montées, base de cols fabriquée). Les cibles `make nommage` et `make ui` utilisent votre propre GPX, placé dans `tests/data/sortie.gpx`, et `make nommage` votre base `tests/data/gps.csv` (ces fichiers sont exclus par le `.gitignore`).
 
