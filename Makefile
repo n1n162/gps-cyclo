@@ -21,7 +21,7 @@ $(BUILD)/test_route: tests/test_route.c core/route.c core/matcher.c core/climb.c
 	$(CC) $(CFLAGS) $^ -lm -o $@
 $(BUILD)/test_fit: tests/test_fit.c core/fit.c | $(BUILD)
 	$(CC) $(CFLAGS) $^ -lm -o $@
-$(BUILD)/test_sim: tests/test_sim.c sim/sim_engine.c core/route.c core/matcher.c core/climb.c | $(BUILD)
+$(BUILD)/test_sim: tests/test_sim.c sim/sim_engine.c core/route.c core/matcher.c core/climb.c core/osm_guidance.c | $(BUILD)
 	$(CC) $(CFLAGS) -Isim $^ -lm -o $@
 $(BUILD)/test_alerts: tests/test_alerts.c core/alerts.c | $(BUILD)
 	$(CC) $(CFLAGS) $^ -lm -o $@
