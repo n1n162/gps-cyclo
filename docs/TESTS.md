@@ -90,7 +90,7 @@ Scripts de préparation : `make_synthetique.py` (jeu fictif), `make_replay.py` (
 | Moteur du simulateur | 19 lignes OK. Écart de position moyen 1,3 m, maximal 5,3 m. Montées suivante et précédente OK, aller à 50 km OK |
 | Noms de cols | 14 lignes OK. 5 montées détectées, 4 nommées, 1 sans nom comme attendu |
 | Montées | `test_climb` : 5 montées sur 66,0 km |
-| `test_route` (sans assertion) | Scénario A : erreur de distance moyenne 3,0 m, 95 % sous 7,3 m, maximale 11,2 m. Scénario B (400 positions sautenées) : la position reste figée 5 s, avec une erreur d'environ 940 m, puis se corrige (erreur de 1 m). Scénario C (décalage de 120 m) : 200 positions sur 200 détectées hors parcours |
+| `test_route` (sans assertion) | Scénario A : erreur de distance moyenne 3,0 m, 95 % sous 7,3 m, maximale 11,2 m. Scénario B (400 positions sautées) : la position reste figée 5 s, avec une erreur d'environ 940 m, puis se corrige (erreur de 1 m). Scénario C (décalage de 120 m) : 200 positions sur 200 détectées hors parcours |
 | FIT, écriture | `ride.fit` : 13 839 enregistrements, 346 433 octets. Récupération après coupure : 6 989 points sur 7 000 écrits |
 | FIT, `verify_fit.py` (second passage) | `ride.fit` : écarts maximaux nuls sur le temps, la distance (0,00 m), la FC et la cadence, 0,10 m sur l'altitude. Session : 13 937 s et 66 000,0 m comme attendu, D+ 1 493 m et D- 1 395 m comme attendu, 2 tours. Fichier récupéré : SDK Garmin `is_fit` vrai, intégrité vraie, 0 erreur de décodage, 6 989 enregistrements relus aussi par `fitdecode` (CRC vérifié), 31 859,8 m comme attendu |
 
