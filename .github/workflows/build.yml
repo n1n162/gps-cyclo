@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Installer garmin-fit-sdk
-        run: python3 -m pip install garmin-fit-sdk
+      - name: Installer les dépendances Python
+        run: python3 -m pip install garmin-fit-sdk fitdecode
       - name: Build and run tests
         run: make test
