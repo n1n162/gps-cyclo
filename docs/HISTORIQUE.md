@@ -1,6 +1,6 @@
 # Historique
 
-Statut : brouillon. Dernière mise à jour : 21 novembre 2026, `main` à `44f51bc` (27 commits), plus la branche `tests/jeu-synthetique`.
+Statut : brouillon. Dernière mise à jour : 22 novembre 2026, `main` à `65ad3c0` (35 commits).
 
 Sources : `git log` des branches distantes (`main`, `ecran-demarrage` et les branches de documentation) et décisions de `docs/DECISIONS.md`. Chaque événement Git porte son commit.
 
@@ -26,13 +26,13 @@ Le dépôt commence le 4 novembre 2026 par un import de 96 fichiers (33 615 lign
 | 20 novembre 2026 | `97c79df`, `7f25ca0` | PR #3 : captures de `docs/captures/` vérifiées |
 | 20 novembre 2026 | `e77d051`, `33e90a7`, `b1744a1` | PR #4 : `Modelfile` supprimé, documentation mise à jour |
 | 21 novembre 2026 | `34cd4a3`, `17e66d4`, `44f51bc` | PR #5 : `TESTS.md`, `BUGS_CONNUS.md` et `HISTORIQUE.md` ajoutés, documents alignés |
-| 21 novembre 2026 | `e5263a7` | Branche `tests/jeu-synthetique` : correctif de « montée précédente » du simulateur (B09) |
-| 21 novembre 2026 | `6329ee4` | Branche `tests/jeu-synthetique` : jeu de test fictif pour `make test` (D15, B02, B03, B08) |
-| 21 novembre 2026 | `02def03` | Branche `tests/jeu-synthetique` : `.gitignore` étendu (B07) |
-| 21 novembre 2026 | `2fcd58e` | Branche `tests/jeu-synthetique` : README, `CLAUDE.md`, `ARCHITECTURE.md`, `cols.md`, `simulateur.md` alignés |
-| 21 novembre 2026 | `bd81964`, `9802c19` | Branche `tests/jeu-synthetique` : `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`, `ROADMAP.md`, `ETAT_DU_PROJET.md`, `DECISIONS.md` (D15) |
+| 21 novembre 2026 | `e5263a7` | Correctif de « montée précédente » du simulateur (B09), branche `tests/jeu-synthetique` |
+| 21 novembre 2026 | `6329ee4` | Jeu de test fictif pour `make test` (D15, B02, B03, B08), branche `tests/jeu-synthetique` |
+| 21 novembre 2026 | `02def03` | `.gitignore` étendu (B07), branche `tests/jeu-synthetique` |
+| 22 novembre 2026 | `2fcd58e`, `bd81964`, `9802c19`, `4d2ffed` | README, `CLAUDE.md`, `ARCHITECTURE.md`, `cols.md`, `simulateur.md`, `TESTS.md`, `BUGS_CONNUS.md`, `HISTORIQUE.md`, `ROADMAP.md`, `ETAT_DU_PROJET.md` et `DECISIONS.md` (D15) alignés, branche `tests/jeu-synthetique` |
+| 22 novembre 2026 | `65ad3c0` | PR #6 fusionnée : jeu de test fictif, correctif du simulateur, `.gitignore` étendu, documentation alignée |
 
-## Remise en ordre du dépôt (19 et 21 novembre 2026)
+## Remise en ordre du dépôt (19 au 22 novembre 2026)
 
 - 19 novembre : règles de travail (D11) et organisation documentaire (D12). État audité en lecture seule sur GitHub.
 - 19 et 20 novembre : protection des données (D04). `.gitignore` corrigé, historique contrôlé sur 18 commits des trois branches distantes de l'époque (aucun fichier de données), fichiers `ride*.fit` vérifiés, 19 captures examinées une par une et conservées.
@@ -40,6 +40,7 @@ Le dépôt commence le 4 novembre 2026 par un import de 96 fichiers (33 615 lign
 - 20 novembre : premier rejeu partiel des tests dans un bac à sable Linux (`docs/TESTS.md`).
 - 21 novembre : `make test` lancé sur le Mac de Nicolas : 5 échecs de `test_sim` dus à sa sortie, qui révèlent que les tests sont calés sur la sortie de référence. Décision : jeu de test fictif pour les tests, simulateur inchangé (D15). Un défaut du simulateur est trouvé et corrigé (B09).
 - 21 novembre : premier `make test` complet au vert (bac à sable, jeu fictif, clone neuf).
+- 22 novembre : PR #6 fusionnée. `make test` complet rejoué sur le Mac de Nicolas avec le jeu fictif, `verify_fit.py` inclus après installation des bibliothèques Python (`docs/TESTS.md`). Défaut B12 consigné.
 
 ## Suite
 

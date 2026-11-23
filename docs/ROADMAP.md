@@ -8,14 +8,14 @@ Objectif : un dépôt propre, reproductible et documenté.
 
 - Vérifier l'état réel de Git : branches, historique, `.gitignore`. Rien ne doit être publié avant cette vérification.
 - Contrôler l'absence de GPX, FIT, `gps.csv` ou jeton dans l'historique de toutes les branches.
-- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement. Fait le 21 novembre 2026 : `make test` complet dans un bac à sable Linux sur le jeu fictif (`docs/TESTS.md`). Reste `make test` avec le jeu fictif, `make gvt-test` et `make map-test` sur le Mac de Nicolas.
+- Rejouer les tests existants sur une machine équipée, consigner résultat, date, commit et environnement. Fait pour `make test` : bac à sable Linux le 21 novembre 2026, Mac de Nicolas le 22 novembre 2026 (`docs/TESTS.md`). Reste `make gvt-test` et `make map-test` sur le Mac de Nicolas.
 - Décider du sort de la branche `ecran-demarrage` (la branche locale `qwen` est abandonnée, voir D14).
 - Jeu de test fictif pour que `make test` marche sur un clone neuf : fait le 21 novembre 2026 (D15). Reste à étudier l'extension aux cibles `ui` et `nommage` (B10).
-- Ajouter `requirements.txt` et une cible `make test-all` (tests, carte, BLE).
+- Ajouter `requirements.txt` et une cible `make test-all` (tests, carte, BLE). Prévoir un message clair quand `garmin-fit-sdk` ou `fitdecode` manque (B12).
 - Valider puis publier les huit documents racine.
 - Renommer `docs/ecran acceuil.jpg`.
 
-Critère de fin : un clone neuf compile et passe `make test-all` sans fichier personnel, et les premiers résultats rejoués sont consignés. Pour `make test`, ce critère est atteint dans un bac à sable Linux.
+Critère de fin : un clone neuf compile et passe `make test-all` sans fichier personnel, et les premiers résultats rejoués sont consignés. Pour `make test`, ce critère est atteint (bac à sable Linux et Mac de Nicolas, après installation des bibliothèques Python).
 
 ## Phase 1. Corriger et consolider sur PC
 
