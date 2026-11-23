@@ -1,228 +1,288 @@
 #!/usr/bin/env python3
-"""Convertit un GPX en itinéraire routier OSM préliminaire.
+"""Map-match a GPX to a connected OSM bicycle-road graph.
 
-Principe minimal : les points GPX sont rapprochés des ways OSM, puis les chemins
-entre les ways voisins sont résolus sur le graphe. Le résultat est un GeoJSON
-LineString utilisable pour le guidage, avec les changements de rue comme
-manoeuvres.
+Input OSM files are Overpass JSON with way geometry (``out body geom`` is
+recommended; geometry-only files are also accepted, using coordinates as node
+identifiers). This is an offline preprocessing tool, not an on-device router.
 """
 import argparse
+import heapq
 import json
 import math
 import xml.etree.ElementTree as ET
 
 EARTH_R = 6371008.8
+SKIP_HIGHWAYS = {'motorway', 'motorway_link', 'trunk', 'trunk_link', 'construction', 'proposed'}
 
 
-def hav(lat1, lon1, lat2, lon2):
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp = p2 - p1
-    dl = math.radians(lon2 - lon1)
+def hav(a, b):
+    p1, p2 = math.radians(a[0]), math.radians(b[0])
+    dp, dl = p2 - p1, math.radians(b[1] - a[1])
     h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * EARTH_R * math.asin(min(1.0, math.sqrt(h)))
 
 
-def gpx_points(path):
+def local_xy(point, origin):
+    return (math.radians(point[1] - origin[1]) * EARTH_R * math.cos(math.radians(origin[0])),
+            math.radians(point[0] - origin[0]) * EARTH_R)
+
+
+def project_to_segment(p, a, b):
+    ax, ay = local_xy(a, p)
+    bx, by = local_xy(b, p)
+    dx, dy = bx - ax, by - ay
+    den = dx * dx + dy * dy
+    t = 0.0 if den == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / den))
+    q = (a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]))
+    return hav(p, q), t, q
+
+
+def read_gpx(path):
     root = ET.parse(path).getroot()
-    points = []
+    pts = []
     for el in root.iter():
         if el.tag.rsplit('}', 1)[-1] not in ('trkpt', 'rtept'):
             continue
         try:
-            lat, lon = float(el.attrib['lat']), float(el.attrib['lon'])
+            pts.append((float(el.attrib['lat']), float(el.attrib['lon'])))
         except (KeyError, ValueError):
             continue
-        ele_el = next((c for c in el if c.tag.rsplit('}', 1)[-1] == 'ele'), None)
-        ele = float(ele_el.text) if ele_el is not None and ele_el.text else None
-        points.append((lat, lon, ele))
-    if len(points) < 2:
-        raise SystemExit('le GPX doit contenir au moins deux points')
-    return points
+    if len(pts) < 2:
+        raise ValueError('GPX must contain at least two track or route points')
+    return pts
 
 
-def load_osm(paths):
-    ways = []
-    nodes = {}
+def resample(points, spacing=80.0):
+    """Keep the GPX order and create anchors at a bounded distance interval."""
+    out = [points[0]]
+    carry = 0.0
+    for a, b in zip(points, points[1:]):
+        length = hav(a, b)
+        if length == 0:
+            continue
+        d = spacing - carry
+        while d < length:
+            t = d / length
+            out.append((a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])))
+            d += spacing
+        carry = (carry + length) % spacing
+        out.append(b)
+    return out
+
+
+def node_key(node, point):
+    if node is not None:
+        return ('id', int(node))
+    return ('xy', round(point[0], 7), round(point[1], 7))
+
+
+def load_graph(paths):
+    graph, arcs = {}, []
+    seen = set()
     for path in paths:
         with open(path, encoding='utf-8') as f:
             data = json.load(f)
         for el in data.get('elements', []):
-            if el.get('type') == 'way' and el.get('tags', {}).get('highway'):
-                geom = el.get('geometry')
-                if geom and len(geom) >= 2:
-                    way = {
-                        'id': el['id'],
-                        'tags': el['tags'],
-                        'geom': [(p['lat'], p['lon']) for p in geom],
-                    }
-                    ways.append(way)
-                    for lat, lon in way['geom']:
-                        nodes[(round(lat, 7), round(lon, 7))] = (lat, lon)
-    if not ways:
-        raise SystemExit('aucun way routable trouvé dans les fichiers OSM')
-    return ways, nodes
+            if el.get('type') != 'way' or not el.get('tags', {}).get('highway'):
+                continue
+            if el.get('id') in seen:
+                continue
+            seen.add(el.get('id'))
+            tags = el.get('tags', {})
+            highway = tags.get('highway', '')
+            if highway in SKIP_HIGHWAYS or tags.get('access') in ('no', 'private') or tags.get('bicycle') == 'no':
+                continue
+            geom = el.get('geometry') or []
+            if len(geom) < 2:
+                continue
+            coords = [(float(p['lat']), float(p['lon'])) for p in geom]
+            node_ids = el.get('nodes')
+            if not isinstance(node_ids, list) or len(node_ids) != len(coords):
+                node_ids = [None] * len(coords)
+            name = tags.get('name', '')
+            oneway = tags.get('oneway') in ('yes', '1', 'true', '-1')
+            reverse_only = tags.get('oneway') == '-1'
+            for i, (a, b) in enumerate(zip(coords, coords[1:])):
+                u, v = node_key(node_ids[i], a), node_key(node_ids[i + 1], b)
+                length = hav(a, b)
+                if length <= 0.01:
+                    continue
+                if not reverse_only:
+                    arc = {'u': u, 'v': v, 'a': a, 'b': b, 'len': length, 'way': el['id'], 'name': name}
+                    arcs.append(arc)
+                    graph.setdefault(u, []).append(arc)
+                if not oneway or reverse_only:
+                    arc = {'u': v, 'v': u, 'a': b, 'b': a, 'len': length, 'way': el['id'], 'name': name}
+                    arcs.append(arc)
+                    graph.setdefault(v, []).append(arc)
+    if not arcs:
+        raise ValueError('No usable OSM highway ways found')
+    return graph, arcs
 
 
-def project(lat, lon, a, b):
-    ax, ay = project_xy(a, lat0=lat, lon0=lon)
-    bx, by = project_xy(b, lat0=lat, lon0=lon)
-    px, py = 0.0, 0.0
-    dx, dy = bx - ax, by - ay
-    l2 = dx * dx + dy * dy
-    t = 0.0 if l2 == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / l2))
-    qx, qy = ax + t * dx, ay + t * dy
-    plat = lat + py / EARTH_R * 180 / math.pi
-    plon = lon + px / (EARTH_R * math.cos(math.radians(lat))) * 180 / math.pi
-    # Projection locale simplifiée correcte à proximité immédiate.
-    plat = lat + qy / EARTH_R * 180 / math.pi
-    plon = lon + qx / (EARTH_R * math.cos(math.radians(lat))) * 180 / math.pi
-    dist = hav(lat, lon, plat, plon)
-    return dist, t, (plat, plon)
-
-
-def project_xy(p, lat0, lon0):
-    lat, lon = p
-    x = math.radians(lon - lon0) * EARTH_R * math.cos(math.radians(lat0))
-    y = math.radians(lat - lat0) * EARTH_R
-    return x, y
-
-
-def nearest_ways(point, ways, limit=25.0):
-    lat, lon = point[:2]
+def candidates(point, arcs, max_snap, limit=8):
     found = []
-    for way in ways:
-        geom = way['geom']
-        for i in range(len(geom) - 1):
-            dist, t, proj = project(lat, lon, geom[i], geom[i + 1])
-            if dist <= limit:
-                found.append((dist, way['id'], i, t, proj))
-    found.sort(key=lambda v: v[0])
-    return found[:8]
+    for arc in arcs:
+        dist, t, q = project_to_segment(point, arc['a'], arc['b'])
+        if dist <= max_snap:
+            found.append({'arc': arc, 't': t, 'point': q, 'snap': dist})
+    found.sort(key=lambda c: c['snap'])
+    return found[:limit]
 
 
-def build_graph(ways):
-    graph = {}
-    way_nodes = {}
-    for way in ways:
-        highway = way['tags'].get('highway')
-        if highway in ('motorway', 'motorway_link', 'trunk', 'trunk_link'):
+def shortest(graph, start, goal, limit):
+    if start == goal:
+        return 0.0, []
+    dist = {start: 0.0}
+    prev = {}
+    heap = [(0.0, start)]
+    while heap:
+        cost, node = heapq.heappop(heap)
+        if cost != dist.get(node):
             continue
-        ids = way_nodes.setdefault(way['id'], [])
-        geom = way['geom']
-        previous = None
-        oneway = way['tags'].get('oneway') in ('yes', '1', 'true', '-1')
-        reverse = way['tags'].get('oneway') == '-1'
-        for lat, lon in geom:
-            node = (round(lat, 7), round(lon, 7))
-            ids.append(node)
-            if previous is not None:
-                a, b = previous, node
-                d = hav(a[0], a[1], b[0], b[1])
-                if reverse:
-                    graph.setdefault(b, []).append((a, d, way['id'], way['tags'].get('name', '')))
-                else:
-                    graph.setdefault(a, []).append((b, d, way['id'], way['tags'].get('name', '')))
-                    if not oneway:
-                        graph.setdefault(b, []).append((a, d, way['id'], way['tags'].get('name', '')))
-            previous = node
-    return graph, way_nodes
+        if cost > limit:
+            break
+        if node == goal:
+            path = []
+            while node != start:
+                parent, arc = prev[node]
+                path.append(arc)
+                node = parent
+            path.reverse()
+            return cost, path
+        for arc in graph.get(node, ()):
+            nd = cost + arc['len']
+            if nd <= limit and nd < dist.get(arc['v'], float('inf')):
+                dist[arc['v']] = nd
+                prev[arc['v']] = (node, arc)
+                heapq.heappush(heap, (nd, arc['v']))
+    return None
 
 
-def angle(a, b):
-    x1, y1 = a
-    x2, y2 = b
-    dx, dy = x2 - x1, y2 - y1
-    return math.degrees(math.atan2(dy, dx))
+def connect(graph, left, right, expected):
+    """Return a directed, connected network path between two edge projections."""
+    a, b = left['arc'], right['arc']
+    if a is b and right['t'] >= left['t']:
+        return (right['t'] - left['t']) * a['len'], []
+    # The route leaves the first directed edge at its end and joins the next
+    # directed edge at its start. Bound detours to avoid unrelated graph loops.
+    middle = shortest(graph, a['v'], b['u'], max(500.0, expected * 4.0 + 100.0))
+    if middle is None:
+        return None
+    cost, path = middle
+    total = (1.0 - left['t']) * a['len'] + cost + right['t'] * b['len']
+    return total, path
 
 
-def maneuver_type(before, turn, after):
-    h1 = angle(before, turn)
-    h2 = angle(turn, after)
-    d = (h2 - h1 + 180) % 360 - 180
-    if d < -135 or d > 135:
-        return 'u_turn', d
-    if d < -45:
-        return 'left', d
-    if d < -12:
-        return 'slight_left', d
-    if d > 45:
-        return 'right', d
-    if d > 12:
-        return 'slight_right', d
-    return 'straight', d
+def route_match(anchors, graph, arcs, max_snap):
+    choices = [candidates(p, arcs, max_snap) for p in anchors]
+    if any(not c for c in choices):
+        bad = next(i for i, c in enumerate(choices) if not c)
+        raise ValueError('No OSM road within %.1f m of GPX anchor %d/%d' % (max_snap, bad + 1, len(anchors)))
+    costs = [c['snap'] ** 2 for c in choices[0]]
+    parents = []
+    links = []
+    for i in range(1, len(choices)):
+        expected = hav(anchors[i - 1], anchors[i])
+        row_costs, row_parents, row_links = [], [], []
+        for right in choices[i]:
+            best_cost, best_parent, best_link = float('inf'), -1, None
+            for j, left in enumerate(choices[i - 1]):
+                link = connect(graph, left, right, expected)
+                if link is None:
+                    continue
+                length, path = link
+                # Preserve GPX progression while preferring close snaps and
+                # rejecting implausible graph detours or discontinuities.
+                score = costs[j] + right['snap'] ** 2 + 0.25 * (length - expected) ** 2
+                if score < best_cost:
+                    best_cost, best_parent, best_link = score, j, (length, path)
+            row_costs.append(best_cost)
+            row_parents.append(best_parent)
+            row_links.append(best_link)
+        if min(row_costs) == float('inf'):
+            raise ValueError('OSM graph is disconnected between GPX anchors %d and %d' % (i, i + 1))
+        costs, parents = row_costs, parents + [row_parents]
+        links.append(row_links)
+    idx = min(range(len(costs)), key=costs.__getitem__)
+    selected = [None] * len(choices)
+    selected[-1] = idx
+    for i in range(len(choices) - 1, 0, -1):
+        selected[i - 1] = parents[i - 1][selected[i]]
+    return choices, selected, links
 
 
-def densify(points, step_m=30.0):
-    out = [points[0]]
-    for a, b in zip(points, points[1:]):
-        d = hav(a[0], a[1], b[0], b[1])
-        n = max(1, int(d / step_m))
-        for i in range(1, n + 1):
-            t = i / n
-            lat = a[0] + (b[0] - a[0]) * t
-            lon = a[1] + (b[1] - a[1]) * t
-            out.append((lat, lon, None))
-    return out
+def route_geometry(choices, selected, links):
+    coords, path_arcs = [], []
+    first = choices[0][selected[0]]
+    coords.append(first['point'])
+    for i in range(1, len(choices)):
+        left = choices[i - 1][selected[i - 1]]
+        right = choices[i][selected[i]]
+        coords.append(left['arc']['b'])
+        path_arcs.extend(links[i - 1][selected[i]][1])
+        for arc in links[i - 1][selected[i]][1]:
+            coords.append(arc['b'])
+        coords.append(right['arc']['a'])
+        coords.append(right['point'])
+    # Collapse adjacent duplicate coordinates while retaining order.
+    compact = []
+    for p in coords:
+        if not compact or hav(compact[-1], p) > 0.5:
+            compact.append(p)
+    return compact
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('gpx')
-    ap.add_argument('osm', nargs='+', help='fichiers JSON Overpass')
-    ap.add_argument('--out', required=True, help='GeoJSON de sortie')
-    ap.add_argument('--max-snap-m', type=float, default=25.0)
+    ap.add_argument('osm', nargs='+', help='Overpass JSON extracts')
+    ap.add_argument('--out', required=True, help='output route GeoJSON')
+    ap.add_argument('--max-snap-m', type=float, default=30.0)
+    ap.add_argument('--spacing-m', type=float, default=80.0, help='GPX anchor interval')
     args = ap.parse_args()
-
-    points = densify(gpx_points(args.gpx))
-    *osm_paths, = args.osm
-    ways, _ = load_osm(osm_paths)
-    graph, way_nodes = build_graph(ways)
-
-    matched = []
-    missed = 0
-    for point in points:
-        candidates = nearest_ways(point, ways, args.max_snap_m)
-        if not candidates:
-            missed += 1
-            continue
-        dist, way_id, segment, t, projected = candidates[0]
-        matched.append((point[:2], projected, way_id, dist))
-
-    if not matched:
-        raise SystemExit('aucun point GPX n’est assez proche du réseau OSM')
-
-    route_coords = []
-    last_way = None
+    if args.max_snap_m <= 0 or args.spacing_m <= 0:
+        ap.error('--max-snap-m and --spacing-m must be positive')
+    try:
+        original = read_gpx(args.gpx)
+        anchors = resample(original, args.spacing_m)
+        graph, arcs = load_graph(args.osm)
+        choices, selected, links = route_match(anchors, graph, arcs, args.max_snap_m)
+        coords = route_geometry(choices, selected, links)
+    except (OSError, ValueError, json.JSONDecodeError, ET.ParseError) as e:
+        ap.exit(2, 'gpx_to_osm_route: %s\n' % e)
     maneuvers = []
-    for point, projected, way_id, dist in matched:
-        if not route_coords or hav(route_coords[-1][0], route_coords[-1][1], projected[0], projected[1]) > 2.0:
-            route_coords.append(projected)
-        if last_way is not None and way_id != last_way:
-            maneuvers.append({'lat': projected[0], 'lon': projected[1], 'from_way': last_way, 'to_way': way_id})
-        last_way = way_id
-
-    features = [{
-        'type': 'Feature',
-        'properties': {
-            'type': 'matched_route',
-            'source': args.gpx,
-            'points': len(points),
-            'matched': len(matched),
-            'missed': missed,
-            'maneuver_count': len(maneuvers),
-        },
-        'geometry': {'type': 'LineString', 'coordinates': [[lon, lat] for lat, lon in route_coords]},
-    }]
+    prev = None
+    distance = 0.0
+    for i in range(1, len(coords)):
+        distance += hav(coords[i - 1], coords[i])
+    # The route geometry is topologically connected; maneuver generation uses
+    # changes between selected OSM way IDs, not turns inferred from the raw GPX.
+    chosen_arcs = [choices[i][selected[i]]['arc'] for i in range(len(choices))]
+    progress = 0.0
+    for i, arc in enumerate(chosen_arcs):
+        if prev is not None and arc['way'] != prev['way']:
+            point = choices[i][selected[i]]['point']
+            maneuvers.append({'type': 'intersection', 'lat': point[0], 'lon': point[1],
+                              'from_way': prev['way'], 'to_way': arc['way'],
+                              'from_name': prev['name'], 'to_name': arc['name'],
+                              'distance_from_start_m': round(progress, 1)})
+        if i:
+            progress += links[i - 1][selected[i]][0]
+        prev = arc
     output = {
         'type': 'FeatureCollection',
-        'properties': {'format': 'GPS-CYCLO-ROUTE-1', 'source_gpx': args.gpx},
-        'features': features,
+        'properties': {'format': 'GPS-CYCLO-ROUTE-1', 'source_gpx': args.gpx,
+                       'anchors': len(anchors), 'matched_anchors': len(selected),
+                       'network_distance_m': round(distance, 1)},
+        'features': [{'type': 'Feature', 'properties': {'type': 'matched_route'},
+                      'geometry': {'type': 'LineString', 'coordinates': [[lon, lat] for lat, lon in coords]}}],
         'maneuvers': maneuvers,
     }
     with open(args.out, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    print('itinéraire écrit : %s' % args.out)
-    print('%d/%d points rapprochés du réseau OSM, %d changements de way' % (len(matched), len(points), len(maneuvers)))
+    print('Wrote connected OSM-matched route: %s (%d anchors, %d intersections)' %
+          (args.out, len(anchors), len(maneuvers)))
 
 
 if __name__ == '__main__':
