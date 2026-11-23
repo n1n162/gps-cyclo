@@ -7,7 +7,7 @@ BUILD = build
 DATA = tests/data
 SYN = tests/data/synthetique
 
-.PHONY: all test ui sim nommage map-test gvt-test cols-format-test clean
+.PHONY: all test ui sim nommage map-test gvt-test cols-format-test gcr1-test clean
 all: test
 
 $(BUILD):
@@ -32,6 +32,13 @@ $(BUILD)/test_cols_format: tests/test_cols_format.c core/cols.c core/cols.h core
 
 cols-format-test: $(BUILD)/test_cols_format
 	$(BUILD)/test_cols_format
+
+$(BUILD)/test_osm_guidance: tests/test_osm_guidance.c core/osm_guidance.c core/osm_guidance.h | $(BUILD)
+	$(CC) $(CFLAGS) tests/test_osm_guidance.c core/osm_guidance.c -lm -o $@
+
+gcr1-test: $(BUILD)/test_osm_guidance
+	$(BUILD)/test_osm_guidance
+	python3 -m unittest tests/test_route_to_gcr1.py tests/test_gpx_to_osm_route.py
 
 $(BUILD)/name_real: tests/name_real.c core/cols.c core/climb.c core/route.c | $(BUILD)
 	$(CC) $(CFLAGS) $^ -lm -o $@
@@ -86,7 +93,7 @@ $(SYN)/synthetique.gpx $(SYN)/cols.csv: tests/make_synthetique.py
 $(SYN)/replay.csv $(SYN)/replay2.csv: $(SYN)/synthetique.gpx tests/make_replay.py
 	cd $(SYN) && python3 ../../make_replay.py synthetique.gpx
 
-test: cols-format-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(SYN)/replay.csv $(SYN)/replay2.csv $(SYN)/cols.csv
+test: cols-format-test gcr1-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(SYN)/replay.csv $(SYN)/replay2.csv $(SYN)/cols.csv
 	$(BUILD)/test_alerts
 	$(BUILD)/test_guidance
 	cd $(SYN) && ../../../$(BUILD)/test_sim synthetique.gpx
