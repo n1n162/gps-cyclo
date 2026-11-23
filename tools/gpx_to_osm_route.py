@@ -164,8 +164,6 @@ def connect(graph, left, right, expected):
     a, b = left['arc'], right['arc']
     if a is b and right['t'] >= left['t']:
         return (right['t'] - left['t']) * a['len'], []
-    # The route leaves the first directed edge at its end and joins the next
-    # directed edge at its start. Bound detours to avoid unrelated graph loops.
     middle = shortest(graph, a['v'], b['u'], max(500.0, expected * 4.0 + 100.0))
     if middle is None:
         return None
@@ -192,8 +190,6 @@ def route_match(anchors, graph, arcs, max_snap):
                 if link is None:
                     continue
                 length, path = link
-                # Preserve GPX progression while preferring close snaps and
-                # rejecting implausible graph detours or discontinuities.
                 score = costs[j] + right['snap'] ** 2 + 0.25 * (length - expected) ** 2
                 if score < best_cost:
                     best_cost, best_parent, best_link = score, j, (length, path)
@@ -213,19 +209,21 @@ def route_match(anchors, graph, arcs, max_snap):
 
 
 def route_geometry(choices, selected, links):
-    coords, path_arcs = [], []
+    coords = []
     first = choices[0][selected[0]]
     coords.append(first['point'])
     for i in range(1, len(choices)):
         left = choices[i - 1][selected[i - 1]]
         right = choices[i][selected[i]]
+        _, path = links[i - 1][selected[i]]
+        if left['arc'] is right['arc'] and not path:
+            coords.append(right['point'])
+            continue
         coords.append(left['arc']['b'])
-        path_arcs.extend(links[i - 1][selected[i]][1])
-        for arc in links[i - 1][selected[i]][1]:
+        for arc in path:
             coords.append(arc['b'])
         coords.append(right['arc']['a'])
         coords.append(right['point'])
-    # Collapse adjacent duplicate coordinates while retaining order.
     compact = []
     for p in coords:
         if not compact or hav(compact[-1], p) > 0.5:
@@ -256,8 +254,6 @@ def main():
     distance = 0.0
     for i in range(1, len(coords)):
         distance += hav(coords[i - 1], coords[i])
-    # The route geometry is topologically connected; maneuver generation uses
-    # changes between selected OSM way IDs, not turns inferred from the raw GPX.
     chosen_arcs = [choices[i][selected[i]]['arc'] for i in range(len(choices))]
     progress = 0.0
     for i, arc in enumerate(chosen_arcs):
