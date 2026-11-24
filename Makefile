@@ -1,4 +1,4 @@
-# Tests sur ordinateur du code commun (montees, GPX, positionnement, FIT, noms de cols).
+# Tests sur ordinateur du code commun (montees, GPX, positionnement, FIT, noms de cols, BLE).
 # make test s'appuie sur un jeu fictif genere par tests/make_synthetique.py : aucun fichier personnel n'est necessaire.
 # Les cibles ui et nommage utilisent encore tests/data/sortie.gpx (non publie, voir README).
 CC ?= gcc
@@ -7,7 +7,7 @@ BUILD = build
 DATA = tests/data
 SYN = tests/data/synthetique
 
-.PHONY: all test ui sim nommage map-test gvt-test cols-format-test clean
+.PHONY: all test ui sim nommage map-test gvt-test cols-format-test ble-test clean
 all: test
 
 $(BUILD):
@@ -32,6 +32,12 @@ $(BUILD)/test_cols_format: tests/test_cols_format.c core/cols.c core/cols.h core
 
 cols-format-test: $(BUILD)/test_cols_format
 	$(BUILD)/test_cols_format
+
+$(BUILD)/test_ble: tests/test_ble.c core/ble_decode.c core/ble_decode.h | $(BUILD)
+	$(CC) $(CFLAGS) $^ -lm -o $@
+
+ble-test: $(BUILD)/test_ble
+	$(BUILD)/test_ble
 
 $(BUILD)/name_real: tests/name_real.c core/cols.c core/climb.c core/route.c | $(BUILD)
 	$(CC) $(CFLAGS) $^ -lm -o $@
@@ -86,7 +92,7 @@ $(SYN)/synthetique.gpx $(SYN)/cols.csv: tests/make_synthetique.py
 $(SYN)/replay.csv $(SYN)/replay2.csv: $(SYN)/synthetique.gpx tests/make_replay.py
 	cd $(SYN) && python3 ../../make_replay.py synthetique.gpx
 
-test: cols-format-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(SYN)/replay.csv $(SYN)/replay2.csv $(SYN)/cols.csv
+test: ble-test cols-format-test $(BUILD)/test_sim $(BUILD)/test_alerts $(BUILD)/test_guidance $(BUILD)/test_climb $(BUILD)/test_cols $(BUILD)/test_route $(BUILD)/test_fit $(SYN)/replay.csv $(SYN)/replay2.csv $(SYN)/cols.csv
 	$(BUILD)/test_alerts
 	$(BUILD)/test_guidance
 	cd $(SYN) && ../../../$(BUILD)/test_sim synthetique.gpx
