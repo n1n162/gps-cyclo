@@ -34,7 +34,7 @@ cols-format-test: $(BUILD)/test_cols_format
 	$(BUILD)/test_cols_format
 
 $(BUILD)/test_ble: tests/test_ble.c core/ble_decode.c core/ble_decode.h | $(BUILD)
-	$(CC) $(CFLAGS) $^ -lm -o $@
+	$(CC) $(CFLAGS) tests/test_ble.c core/ble_decode.c -lm -o $@
 
 ble-test: $(BUILD)/test_ble
 	$(BUILD)/test_ble
