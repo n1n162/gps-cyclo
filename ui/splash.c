@@ -83,11 +83,16 @@ static void sp_click(lv_event_t *e)
     ui_splash_skip((ui_splash_t *)lv_event_get_user_data(e));
 }
 
-/* L'objet est detruit : on oublie ses pointeurs, sans toucher a un ecran de demarrage plus recent. */
+/* Si l'ecran est detruit avant la fin, arreter aussi son timer pour eviter un rappel sur un ecran disparu. */
 static void sp_deleted(lv_event_t *e)
 {
     ui_splash_t *s = (ui_splash_t *)lv_event_get_user_data(e);
     if (lv_event_get_target(e) != s->screen) return;
+    if (s->timer) {
+        lv_timer_delete(s->timer);
+        s->timer = NULL;
+    }
+    s->active = 0;
     s->screen = NULL;
     s->bar_fill = NULL;
     s->status = NULL;
