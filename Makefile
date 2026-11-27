@@ -7,7 +7,7 @@ BUILD = build
 DATA = tests/data
 SYN = tests/data/synthetique
 
-.PHONY: all test ui sim nommage map-test gvt-test cols-format-test splash-test clean
+.PHONY: all test ui sim nommage map-test gvt-test pbf-writer-test cols-format-test splash-test clean
 all: test
 
 $(BUILD):
@@ -64,6 +64,10 @@ $(BUILD)/test_linedraw: tests/test_linedraw.c core/linedraw.c core/linedraw.h | 
 
 $(BUILD)/test_mapview: tests/test_mapview.c core/mapview.c core/mapview.h core/gvt.c core/route.c | $(BUILD)
 	$(CC) $(CFLAGS) -Icore tests/test_mapview.c core/mapview.c core/gvt.c core/route.c -lm -o $@
+
+# Test isolé de l'assemblage SQLite -> GVT1 (nécessite Pyosmium, comme le convertisseur PBF).
+pbf-writer-test:
+	python3 tests/test_pbf_gvt_writer.py
 
 gvt-test: $(BUILD)/test_gvt $(BUILD)/test_mapview $(BUILD)/test_polyfill $(BUILD)/test_linedraw $(BUILD)/synthetic.gvt
 	python3 tests/verify_gvt.py $(BUILD)/synthetic.geojson $(BUILD)/synthetic.gvt
