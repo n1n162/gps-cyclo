@@ -523,7 +523,7 @@ def write_gvt(db, destination, bounds, zmin, zmax):
             tile_count, HEADER_SIZE, *bbox
         ))
         # Réserve l'index à sa taille définitive. Il sera rempli au fil de l'écriture.
-        out.write(b"\\0" * (INDEX_SIZE * tile_count))
+        out.write(b"\0" * (INDEX_SIZE * tile_count))
         out.seek(base)
 
         cursor = db.execute(
