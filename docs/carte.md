@@ -122,7 +122,7 @@ LVGL n'est pas utilisé pour les lignes de la carte : sa file de tâches de dess
   - lecteur C, tuiles tronquées, tampon trop petit ;
   - alignement carte/trace (écart maximal 0,05 pixel), zoom, couverture des tuiles pour toutes les rotations, cache ;
   - remplissage et lignes : plus de 4 millions de pixels de remplissage et 12 millions de pixels de lignes comparés à une référence indépendante, aucun écart hors égalités d'arrondi sur une arête ;
-  - requête et découpage Overpass avec un faux serveur local (le vrai serveur n'est pas contacté par ce test).
+  - conversion des fixtures GeoJSON synthétiques par un outil réservé aux tests ; cette cible ne valide pas le lecteur PBF Pyosmium, qui doit être rejoué avec un vrai fichier .osm.pbf.
 - `sh ui/build_map_preview.sh` : rend la page trace avec LVGL 9.2.2 (thèmes sombre et clair, avec et sans la trace), compte les redessins pendant une sortie simulée, et vérifie le réglage du thème (clair par défaut, enregistrement, refus de 8 enregistrements invalides, parcours de l'écran RÉGLAGES jusqu'au retour à l'accueil).
 - `sh sim/build_sim.sh parcours.gpx [sortie.gpx] --carte carte.gvt` : le simulateur affiche la carte sur la page trace (deuxième page). Au démarrage, il indique quelle part du parcours est couverte par la carte (un point tous les 500 m) et avertit si moins de la moitié l'est : sans carte sous le parcours, la page trace n'a qu'un fond uni. Avec `--selftest`, une vérification de plus contrôle que la page trace dessine des routes de la carte, sans erreur de lecture : elle échoue si la carte ne couvre pas le parcours.
 
