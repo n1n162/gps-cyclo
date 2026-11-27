@@ -217,6 +217,7 @@ static void frame(double forced_dt)
     last_ms = now;
     if (forced_dt >= 0.0) dt = forced_dt;
     if (dt > 0.25) dt = 0.25;
+    if (!ui_splash_done(&splash)) dt = 0.0;   /* la sortie commence apres l'ecran de demarrage */
     sim_advance(&sim, dt);
     if (ui_splash_done(&splash) && (g_force || (sim.idx != last_idx && now - last_upd_ms >= 200))) {
         push_sample();
