@@ -18,7 +18,7 @@ fi
 python3 ../tests/make_gvt_demo.py build/demo.geojson
 python3 ../tests/geojson_to_gvt_fixture.py build/demo.geojson build/demo.gvt > /dev/null
 python3 ../tests/make_gvt_fixture.py build/synthetic.geojson
-python3 ../tools/osm_to_gvt.py build/synthetic.geojson build/synthetic.gvt > /dev/null
+python3 ../tests/geojson_to_gvt_fixture.py build/synthetic.geojson build/synthetic.gvt > /dev/null
 gcc -O1 -Wall -Wextra -I. -Ilvgl -I../core -DLV_CONF_INCLUDE_SIMPLE app.c map_preview.c \
     ../core/alerts.c ../core/cols.c ../core/climb.c ../core/route.c ../core/matcher.c ../core/guidance.c \
     ../core/gvt.c ../core/mapview.c ../core/polyfill.c ../core/linedraw.c fonts/ui_font_*.c build/liblvgl.a -lm -o build/map_preview
