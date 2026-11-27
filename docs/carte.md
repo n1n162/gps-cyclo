@@ -141,7 +141,7 @@ Options utiles :
 
 ```bash
 python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf france.gvt --zmin 11 --zmax 15
-python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf isere.gvt --bbox 4.7,44.7,6.0,46.0
+python3 tools/osm_pbf_to_gvt.py extrait-regional.osm.pbf isere.gvt
 ```
 
 Les paramètres de simplification sont également disponibles : --tolerance, --area-tolerance, --min-size, --no-areas et --temp-dir. Par défaut, les surfaces sont incluses : forêts, zones urbaines, champs, parcs, roche et eau.
