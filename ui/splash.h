@@ -8,7 +8,7 @@
 
 #include "lvgl.h"
 
-#define UI_SPLASH_DEFAULT_MS 2500       /* duree d'affichage par defaut */
+#define UI_SPLASH_DEFAULT_MS 5000       /* duree d'affichage par defaut */
 
 typedef struct ui_splash {
     lv_obj_t *screen, *bar_fill, *status;
