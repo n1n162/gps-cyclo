@@ -32,7 +32,7 @@ Complément du 22 novembre 2026 : PR #6 fusionnée (`main` à `65ad3c0`). `make 
 | Guidage de virage | `core/guidance` | Rejoué (Mac de Nicolas, 21 et 22 novembre 2026, et bac à sable Linux, 21 novembre 2026) | `test_guidance` OK. Utilisé par `ui/app.c` |
 | Carte GVT1 : format, lecture | `core/gvt` | Rejoué (bac à sable Linux, 20 novembre 2026) | `make gvt-test`, hors `make test`. Non rejoué sur le Mac |
 | Rendu carte | `core/mapview`, `polyfill`, `linedraw` | Rejoué (bac à sable Linux, 20 novembre 2026) | Dans `make gvt-test`. Utilisé par `ui/app.c`, `ui/map_preview.c`, `sim/sim_main.c` |
-| Conversion OSM vers GVT1 | `tools/osm_to_gvt.py` | Rejoué sur données synthétiques (bac à sable Linux, 20 novembre 2026) | Extrait de Grenoble converti par Nicolas sur son Mac, non rejoué |
+| Conversion OSM PBF vers GVT1 | `tools/osm_pbf_to_gvt.py` | Refactorisé pour être autonome ; test sur le PBF France à rejouer | Le précédent export France avait produit 0 surface ; le nouveau bilan détaille les aires lues, non classées et sans anneau |
 | Ancien format GVM1 | `core/map_data` | Rejoué (bac à sable Linux, 20 novembre 2026) | `make map-test`. Seul appelant : `tests/test_map_data.c`. Aucun usage dans `ui/` ni `sim/` |
 | Décodage BLE (FC, cadence, puissance) | `core/ble_decode` | Codé | `tests/test_ble.c` existe mais aucune règle du Makefile ne le compile (vérifié le 19 novembre 2026). Seul appelant : ce test. Aucun usage dans `ui/` ni `sim/`. Test compilé et passé à la main le 20 novembre 2026 (35 lignes OK), hors Make |
 | Interface LVGL (pages, montée auto, champs, alertes, carte, thème, réglages) | `ui/` | Codé | Autotest du simulateur, non rejoué |
