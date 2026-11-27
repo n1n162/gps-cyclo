@@ -13,6 +13,8 @@ Dépendance : python3 -m pip install osmium
 """
 
 import argparse
+import bisect
+import math
 import os
 import sqlite3
 import struct
