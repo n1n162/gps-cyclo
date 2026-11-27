@@ -1,6 +1,6 @@
 # Écran de démarrage
 
-Le composant d'écran de démarrage LVGL est ajouté dans cette branche. L'intégration au simulateur et au firmware ESP-IDF reste à effectuer et à valider avant de considérer la fonctionnalité terminée.
+Le composant LVGL est intégré au simulateur SDL dans cette branche. L'intégration au firmware ESP-IDF et le test sur la carte ESP32-S3 restent à faire.
 
 ## Composants
 - `tools/splash_to_c.py` recadre l'image en 320 × 480 et la convertit en RGB565 avec tramage.
@@ -21,4 +21,4 @@ Le test utilise une image synthétique et ne nécessite ni GPX ni LVGL :
     python3 tests/test_splash_to_c.py
 
 ## Intégration restante
-Avant de l'utiliser dans le simulateur, ajouter le composant et l'image générée aux sources de compilation, puis intégrer le déroulement du splash dans la boucle SDL en préservant les fonctionnalités actuelles du simulateur. Pour ESP-IDF, ajouter les sources au composant firmware et appeler `ui_splash_show()` après l'initialisation de l'accueil. Le test sur la carte ESP32-S3 reste à faire.
+Le script `sim/build_sim.sh` génère l'image avec Pillow et compile le composant dans le simulateur. Au lancement normal, le splash reste affiché 2,5 secondes ou jusqu'à un clic ; le rejeu de la sortie est en pause pendant ce temps. L'autotest `--selftest` saute le splash pour conserver des tests déterministes. Pour ESP-IDF, ajouter les sources au composant firmware et appeler `ui_splash_show()` après l'initialisation de l'accueil. Le test sur la carte ESP32-S3 reste à faire.
