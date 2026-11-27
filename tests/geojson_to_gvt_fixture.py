@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Decoupe un extrait GeoJSON OpenStreetMap en tuiles vectorielles GVT1 (format : docs/carte.md).
+"""Convertit des GeoJSON synthétiques en GVT1 uniquement pour les tests et aperçus PC. Ce script n'est pas un outil de production.
 
 Usage :
-  python3 tools/osm_to_gvt.py extrait.geojson [autre.json ...] carte.gvt [--zmin 11] [--zmax 15]
+  python3 tests/geojson_to_gvt_fixture.py fixture.geojson fixture.gvt [--zmin 11] [--zmax 15]
          [--tolerance 8] [--area-tolerance 16] [--min-size 8] [--no-areas] [--bbox ouest,sud,est,nord]
 
 Entrees acceptees (plusieurs fichiers possibles, le dernier argument est la sortie) :
