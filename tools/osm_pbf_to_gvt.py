@@ -622,6 +622,9 @@ def main():
         if too_big:
             print("ATTENTION : les tuiles dépassant 65 536 octets risquent de ne pas être affichées par le GPS.")
             print("Augmenter --tolerance ou --min-size, ou réduire le zoom maximal.")
+        if not args.no_areas and handler.counts["surfaces"] == 0:
+            print("ATTENTION : aucune surface GVT1 n'a été produite.")
+            print("Vérifier les compteurs d'aires OSM ci-dessus et les tags présents dans le PBF.")
         print("Crédit requis : © contributeurs OpenStreetMap (ODbL).")
     finally:
         db.close()
