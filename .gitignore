@@ -1,5 +1,6 @@
 .DS_Store
 venv/
+.venv/
 *.pbf
 *.csv
 # Donnees personnelles : traces et fichiers d'activite, jamais versionnes
