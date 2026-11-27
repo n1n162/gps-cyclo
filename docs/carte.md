@@ -1,6 +1,6 @@
 # Carte hors ligne : tuiles vectorielles GVT1
 
-Cette conception remplace le format GVM1 (`core/map_data.*`, `tools/osm_to_gvm.py`, `docs/carte_hors_ligne.md`), qui relisait tout le fichier à chaque affichage, sans index ni niveaux de zoom. GVM1 est toujours dans le dépôt, inutilisé.
+Cette conception utilise exclusivement les fichiers OpenStreetMap .osm.pbf comme source de la carte. Le convertisseur PBF produit GVT1 en flux, avec stockage temporaire SQLite. Le format historique GVM1 est indépendant et n'est pas utilisé par cette carte.
 
 ## Principe
 
@@ -87,15 +87,15 @@ Dans les deux cas, le hook `ui_hooks.map_cfg_changed` signale chaque changement,
 
 | Fichier | Rôle |
 |---|---|
-| `tools/overpass_fetch.py` | téléchargement d'un extrait depuis l'API Overpass, par cellules, avec reprise |
-| `tools/osm_to_gvt.py` | convertisseur PC : GeoJSON ou JSON Overpass, un ou plusieurs fichiers, vers GVT1 (bibliothèque standard uniquement) |
+| `tools/osm_pbf_to_gvt.py` | convertisseur unique .osm.pbf vers GVT1 ; lecture Pyosmium, stockage temporaire SQLite |
+| `tools/osm_pbf_to_gvl.py` | extraction des noms de villes et villages depuis le même PBF vers GVL1 |
 | `core/gvt.h`, `core/gvt.c` | lecteur C : en-tête, index, recherche d'une tuile, décodage des lignes et des surfaces |
 | `core/mapview.h`, `core/mapview.c` | vue carte sans LVGL : niveau de zoom, tuiles à lire, passage tuile vers pixels, cache de 16 tuiles |
 | `core/polyfill.h`, `core/polyfill.c` | remplissage de surfaces (pair-impair) dans un tampon RGB565 |
 | `core/linedraw.h`, `core/linedraw.c` | segments épais lissés à bouts arrondis dans un tampon RGB565 |
 | `ui/app.c`, `ui/app.h` | image de la carte dans la page trace : `ui_app_set_map`, `ui_app_set_map_theme` |
 | `tests/make_gvt_fixture.py`, `tests/make_gvt_demo.py` | données synthétiques (lignes et surfaces) ; petite ville fictive |
-| `tests/verify_gvt.py`, `tests/test_gvt.c`, `tests/test_mapview.c`, `tests/test_polyfill.c`, `tests/test_linedraw.c`, `tests/test_overpass.py` | tests |
+| `tests/verify_gvt.py`, `tests/test_gvt.c`, `tests/test_mapview.c`, `tests/test_polyfill.c`, `tests/test_linedraw.c` | tests du format, du rendu et des données synthétiques |
 | `ui/map_preview.c`, `ui/build_map_preview.sh` | aperçu de la page trace avec fond de carte, sans GPX personnel |
 | `make gvt-test` | enchaîne tous les tests de la carte |
 
@@ -126,43 +126,37 @@ LVGL n'est pas utilisé pour les lignes de la carte : sa file de tâches de dess
 - `sh ui/build_map_preview.sh` : rend la page trace avec LVGL 9.2.2 (thèmes sombre et clair, avec et sans la trace), compte les redessins pendant une sortie simulée, et vérifie le réglage du thème (clair par défaut, enregistrement, refus de 8 enregistrements invalides, parcours de l'écran RÉGLAGES jusqu'au retour à l'accueil).
 - `sh sim/build_sim.sh parcours.gpx [sortie.gpx] --carte carte.gvt` : le simulateur affiche la carte sur la page trace (deuxième page). Au démarrage, il indique quelle part du parcours est couverte par la carte (un point tous les 500 m) et avertit si moins de la moitié l'est : sans carte sous le parcours, la page trace n'a qu'un fond uni. Avec `--selftest`, une vérification de plus contrôle que la page trace dessine des routes de la carte, sans erreur de lecture : elle échoue si la carte ne couvre pas le parcours.
 
-## Faire un extrait OpenStreetMap
+## Produire la carte depuis un fichier PBF
 
-### En ligne de commande (recommandé)
+La source officielle de la carte est un fichier OpenStreetMap au format .osm.pbf. Pour la France, télécharger le fichier France depuis Geofabrik (par exemple france-latest.osm.pbf) puis lancer :
 
-```
-python3 tools/overpass_fetch.py --bbox ouest,sud,est,nord --out-dir extrait
-python3 tools/osm_to_gvt.py extrait/*.json carte.gvt
-```
-
-`overpass_fetch.py` interroge l'API Overpass (`https://overpass-api.de/api/interpreter` par défaut, option `--server` pour un autre serveur) par cellules de 10 km (`--cell-km`), une requête à la fois avec 5 secondes de pause, en rejouant la requête après un refus pour trop de requêtes (429) ou un serveur chargé (504). Chaque cellule est écrite dans un fichier ; relancer la commande reprend là où elle s'est arrêtée. Les objets qui touchent deux cellules sont fusionnés par identifiant lors de la conversion. Au-delà de 50 cellules, l'outil demande `--yes` : pour une région entière, un fichier `.osm.pbf` téléchargé d'un seul bloc est plus adapté qu'un grand nombre de requêtes sur un serveur public (ce chemin n'est pas écrit).
-
-La requête demande les lignes **et les surfaces** (forêts, zones urbaines, champs, parcs, roche, eau, y compris en relations). Les téléchargements sont donc nettement plus gros : `--no-areas` ne demande que les lignes et donne un fond uni. `osm_to_gvt.py --no-areas` fait de même à la conversion.
-
-Pour couvrir un parcours, l'outil peut calculer la zone à partir du fichier GPX : `python3 tools/overpass_fetch.py --gpx parcours.gpx --out-dir extrait` (zone des traces agrandie de 3 km de chaque côté, `--margin-km` pour changer ; plusieurs fichiers GPX possibles). Il affiche la boîte calculée et le nombre de cellules.
-
-La boîte se donne autrement en degrés décimaux : ouest, sud, est, nord. Exemple (environ 8 km sur 10 km autour du centre de Grenoble) : `--bbox 5.67,45.14,5.78,45.23`.
-
-Un essai réel de l'outil (sans surfaces, centre de Grenoble) a donné 48 427 objets, 34 Mo de JSON et une carte de 1,07 Mo, la plus grande tuile faisant 18 Ko. Les tests (`tests/test_overpass.py`) utilisent un faux serveur local.
-
-Avec `curl`, une requête isolée s'écrit (la requête est dans un fichier `requete.overpassql`, avec une boîte explicite `(sud,ouest,nord,est)` à la place de `{{bbox}}`, qui n'existe que dans Overpass Turbo) :
-
-```
-curl -o extrait.json --data-urlencode "data@requete.overpassql" https://overpass-api.de/api/interpreter
+```bash
+python3 -m pip install osmium
+python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf france.gvt
 ```
 
-### Avec Overpass Turbo
+Le convertisseur traite le fichier localement : aucune requête Overpass ni connexion réseau n'est nécessaire pendant la conversion. Il lit les objets OSM avec Pyosmium, découpe les lignes et les surfaces dans les tuiles GVT1 et utilise SQLite comme stockage temporaire pour limiter la mémoire.
 
-Le convertisseur lit aussi un GeoJSON exporté depuis Overpass Turbo (overpass-turbo.eu) : cadrer la vue, coller la requête de `overpass_fetch.py` (fonction `build_query`) en remplaçant la boîte par `({{bbox}})`, exécuter, puis Exporter, GeoJSON (avec Safari, le texte s'ouvre dans un nouvel onglet : le copier dans un fichier).
+Options utiles :
 
-### Conseils
+```bash
+python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf france.gvt --zmin 11 --zmax 15
+python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf isere.gvt --bbox 4.7,44.7,6.0,46.0
+```
 
-- Commencer par une zone d'environ 10 km de côté, regarder le résultat de la conversion, puis agrandir.
-- Les petits chemins (`service`, `footway`, `steps`, `pedestrian`, qui n'apparaissent qu'au zoom 15) sont les plus nombreux en ville.
-- Le convertisseur charge tous les fichiers en mémoire : prévoir plusieurs fois leur taille en RAM.
-- Une grande forêt de 50 000 points se convertit en une seconde (mesuré sur une forêt synthétique).
-- À la fin de la conversion, le convertisseur donne les tailles par zoom, la plus grande tuile, et prévient si des tuiles dépassent le cache de l'appareil (64 Ko) : elles ne seraient pas affichées.
-- Mention obligatoire pour les données OpenStreetMap : © contributeurs OpenStreetMap, licence ODbL (l'appareil l'affiche déjà sous la carte).
+Les paramètres de simplification sont également disponibles : --tolerance, --area-tolerance, --min-size, --no-areas et --temp-dir. Par défaut, les surfaces sont incluses : forêts, zones urbaines, champs, parcs, roche et eau.
+
+Les noms de villes et villages ne sont pas inclus dans GVT1. Ils sont extraits séparément du même PBF :
+
+```bash
+python3 tools/osm_pbf_to_gvl.py france-latest.osm.pbf france.gvl
+```
+
+Le format GVL1 est actuellement produit, mais son lecteur et le rendu des libellés dans LVGL restent à intégrer.
+
+Pour couvrir un parcours, utiliser le PBF régional ou national qui contient la zone souhaitée. Le simulateur ne télécharge pas les données : il vérifie uniquement si le fichier GVT1 fourni couvre le parcours.
+
+Mention obligatoire pour les données OpenStreetMap : © contributeurs OpenStreetMap, licence ODbL (l'appareil l'affiche déjà sous la carte).
 
 ## Taille pour l'Isère (estimation)
 
@@ -173,7 +167,7 @@ Mesuré sur le centre de Grenoble (boîte 5.67,45.14,5.78,45.23) avec les surfac
 ## Limites connues
 
 - Les surfaces ont été vérifiées automatiquement sur des données synthétiques, et visuellement sur un extrait réel de Grenoble (forêts, zones urbaines, rivière, parcs reconnaissables, pas de trou aux bords de tuiles). Un anneau de relation qui ne se ferme pas (par exemple une forêt coupée par la limite de la zone téléchargée) est ignoré : sur l'extrait de Grenoble, une partie des forêts des pentes peut donc manquer.
-- Le convertisseur charge tout le GeoJSON en mémoire. Pour l'Isère entière, il faudra le découper par zones d'extraction Overpass ou lire un fichier `.osm.pbf` en flux. Ce second cas n'est pas écrit.
+- Le convertisseur PBF utilise Pyosmium et SQLite pour traiter les grands fichiers sans charger toutes les géométries en mémoire. Le temps de conversion et l'espace temporaire disque dépendent de la taille du PBF et des niveaux de zoom.
 - Le rendu n'a été essayé que sur ordinateur. Le temps d'un dessin complet de la carte sur l'ESP32-S3 n'est pas mesuré : sur le PC de développement, un dessin complet de la carte de Grenoble avec surfaces (jusqu'à 7 800 segments) prend 5 à 17 ms.
 - Un cap qui change de moins de 1,5 degré entre deux dessins laisse un décalage de quelques pixels aux bords de l'écran entre la carte et la trace ; la carte est redessinée dès que ce seuil est dépassé.
 - La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. Les tuiles de plus de 64 Ko ne sont pas affichées (compteur `too_big`).
