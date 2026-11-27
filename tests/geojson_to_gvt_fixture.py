@@ -6,8 +6,7 @@ Usage :
          [--tolerance 8] [--area-tolerance 16] [--min-size 8] [--no-areas] [--bbox ouest,sud,est,nord]
 
 Entrees acceptees (plusieurs fichiers possibles, le dernier argument est la sortie) :
-  - GeoJSON (export d'Overpass Turbo) ;
-  - JSON de l'API Overpass, requete avec [out:json] et "out geom" (voir tools/overpass_fetch.py).
+  - GeoJSON synthetique cree par les tests.
 Un meme objet present dans plusieurs fichiers (identifiant identique) n'est gardé qu'une fois.
 
 Lignes gardees : routes, chemins, cours d'eau, voies ferrees. Surfaces gardees (format version 2) : zones urbaines, forets,
@@ -112,39 +111,6 @@ def polygons_of(geom):
     if geom.get('type') == 'MultiPolygon':
         return [list(poly) for poly in geom['coordinates']]
     return []
-
-
-def stitch_rings(pieces):
-    """Assemble des morceaux de lignes (membres d'une relation) en anneaux fermes. Un anneau qui ne se ferme pas est ignore."""
-    def key(p):
-        return (round(p[0] * 1e7), round(p[1] * 1e7))
-    segs = [list(p) for p in pieces if len(p) >= 2]
-    ends = {}
-    for i, sg in enumerate(segs):
-        ends.setdefault(key(sg[0]), []).append(i)
-        ends.setdefault(key(sg[-1]), []).append(i)
-    used = [False] * len(segs)
-    rings = []
-    for i in range(len(segs)):
-        if used[i]:
-            continue
-        used[i] = True
-        ring = list(segs[i])
-        while key(ring[0]) != key(ring[-1]):
-            k = key(ring[-1])
-            nxt = next((j for j in ends.get(k, []) if not used[j]), None)
-            if nxt is None:
-                ring = None
-                break
-            used[nxt] = True
-            sg = segs[nxt]
-            if key(sg[0]) == k:
-                ring.extend(sg[1:])
-            else:
-                ring.extend(reversed(sg[:-1]))
-        if ring and len(ring) >= 4:
-            rings.append(ring)
-    return rings
 
 
 def world(lon, lat, z):
@@ -433,38 +399,11 @@ def geojson_items(data):
         yield key, props, lines_of(geom), polygons_of(geom)
 
 
-def overpass_items(data, stats):
-    """(cle, tags, lignes, polygones) pour chaque objet d'un JSON Overpass obtenu avec "out geom"."""
-    for el in data.get('elements', []):
-        kind = el.get('type')
-        if kind == 'way':
-            geom = el.get('geometry')
-            if not geom:
-                stats['sans_geometrie'] += 1
-                continue
-            line = [(p['lon'], p['lat']) for p in geom]
-            closed = len(line) >= 4 and line[0] == line[-1]
-            yield ('way', el.get('id')), el.get('tags') or {}, [line], ([[line]] if closed else [])
-        elif kind == 'relation':
-            pieces = []
-            for m in el.get('members', []):
-                if m.get('type') == 'way' and m.get('role') in ('outer', 'inner'):
-                    if m.get('geometry'):
-                        pieces.append([(p['lon'], p['lat']) for p in m['geometry']])
-                    else:
-                        stats['sans_geometrie'] += 1
-            rings = stitch_rings(pieces)
-            yield ('relation', el.get('id')), el.get('tags') or {}, pieces, ([rings] if rings else [])
-
-
 def load_features(paths, bbox, areas=True):
-    """Lignes et surfaces classees de un ou plusieurs fichiers (GeoJSON ou JSON Overpass), sans doublons d'identifiant.
-    Retourne (lignes, surfaces) : lignes = [(classe, zoom minimal, [(lon, lat), ...])],
-    surfaces = [(classe, zoom minimal, [anneau, ...])]."""
+    """Charge uniquement les fixtures GeoJSON utilisées par les tests."""
     if isinstance(paths, str):
         paths = [paths]
     lines, polys, seen = [], [], set()
-    stats = {'sans_geometrie': 0}
 
     def in_box(pts):
         if not bbox:
@@ -477,11 +416,7 @@ def load_features(paths, bbox, areas=True):
     for path in paths:
         with open(path, encoding='utf-8') as f:
             data = json.load(f)
-        if isinstance(data, dict) and 'elements' in data:
-            items = overpass_items(data, stats)
-        else:
-            items = geojson_items(data)
-        for key, tags, ls, pgs in items:
+        for key, tags, ls, pgs in geojson_items(data):
             if key is not None:
                 if key in seen:
                     continue
@@ -500,12 +435,8 @@ def load_features(paths, bbox, areas=True):
                 if len(line) >= 2 and in_box(line):
                     lines.append((c[0], c[1], [(p[0], p[1]) for p in line]))
     if not lines and not polys:
-        hint = ''
-        if stats['sans_geometrie']:
-            hint = ' (%d objets sans geometrie : la requete Overpass doit finir par "out geom;")' % stats['sans_geometrie']
-        raise SystemExit('aucune ligne exploitable dans ' + ', '.join(paths) + hint)
+        raise SystemExit('aucune ligne exploitable dans ' + ', '.join(paths))
     return lines, polys
-
 
 def convert(src, dst, zmin, zmax, tol, min_size, bbox, area_tol=16.0, areas=True):
     lines, polys = load_features(src, bbox, areas)
@@ -591,7 +522,7 @@ def parse_bbox(s):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('files', nargs='+', metavar='fichier',
-                   help='un ou plusieurs extraits (GeoJSON ou JSON Overpass), puis le fichier .gvt a produire')
+                   help='un ou plusieurs extraits (GeoJSON synthétique de test), puis le fichier .gvt a produire')
     p.add_argument('--zmin', type=int, default=11)
     p.add_argument('--zmax', type=int, default=15)
     p.add_argument('--tolerance', type=float, default=8.0, help='simplification, en unites de tuile (4096 = une tuile)')
