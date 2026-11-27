@@ -12,6 +12,7 @@
 #include "cols.h"
 #include "mapview.h"
 #include "sim_engine.h"
+#include "splash.h"
 
 #define PANEL_X 328
 #define PANEL_W 232
@@ -29,6 +30,7 @@ static char pool[400000];
 static cols_db_t db;
 static sim_t sim;
 static ui_app_t app;
+static ui_splash_t splash;
 static int zoom = 1;
 
 enum { CMD_PLAY, CMD_RESTART, CMD_X1, CMD_X10, CMD_X60, CMD_X300, CMD_PREV, CMD_NEXT, CMD_M5, CMD_P5,
@@ -216,7 +218,7 @@ static void frame(double forced_dt)
     if (forced_dt >= 0.0) dt = forced_dt;
     if (dt > 0.25) dt = 0.25;
     sim_advance(&sim, dt);
-    if (g_force || (sim.idx != last_idx && now - last_upd_ms >= 200)) {
+    if (ui_splash_done(&splash) && (g_force || (sim.idx != last_idx && now - last_upd_ms >= 200))) {
         push_sample();
         last_idx = sim.idx; last_upd_ms = now; g_force = 0;
     }
@@ -437,5 +439,6 @@ int main(int argc, char **argv)
     last_ms = SDL_GetTicks();
     g_force = 1;
     if (self) { int rc = selftest(); sim_free(&sim); return rc; }
+    ui_splash_show(&splash, app.home, UI_SPLASH_DEFAULT_MS);
     for (;;) { frame(-1.0); SDL_Delay(5); }
 }
