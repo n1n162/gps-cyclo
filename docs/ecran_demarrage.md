@@ -21,4 +21,4 @@ Le test utilise une image synthétique et ne nécessite ni GPX ni LVGL :
     python3 tests/test_splash_to_c.py
 
 ## Intégration restante
-Le script `sim/build_sim.sh` génère l'image avec Pillow et compile le composant dans le simulateur. Au lancement normal, le splash reste affiché 2,5 secondes ou jusqu'à un clic ; le rejeu de la sortie est en pause pendant ce temps. L'autotest `--selftest` saute le splash pour conserver des tests déterministes. Pour ESP-IDF, ajouter les sources au composant firmware et appeler `ui_splash_show()` après l'initialisation de l'accueil. Le test sur la carte ESP32-S3 reste à faire.
+Le script `sim/build_sim.sh` génère l'image avec Pillow et compile le composant dans le simulateur. Au lancement normal, le splash reste affiché 5 secondes ou jusqu'à un clic ; le rejeu de la sortie est en pause pendant ce temps. L'autotest `--selftest` saute le splash pour conserver des tests déterministes. Pour ESP-IDF, ajouter les sources au composant firmware et appeler `ui_splash_show()` après l'initialisation de l'accueil. Le test sur la carte ESP32-S3 reste à faire.
