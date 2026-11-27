@@ -64,7 +64,7 @@ Ce découpage sert de base à la réorganisation prévue dans `docs/ROADMAP.md`.
                                     |
                       core/alerts, core/guidance -> ui (bannières, virages)
 
-    Cartes : OpenStreetMap -> tools/overpass_fetch.py -> tools/osm_to_gvt.py -> fichier .gvt
+    Cartes : fichier OpenStreetMap .osm.pbf -> tools/osm_pbf_to_gvt.py -> fichier .gvt
              .gvt -> core/gvt -> core/mapview (+ polyfill, linedraw) -> ui (carte)
 
     Enregistrement : mesures -> core/fit -> fichier FIT (export manuel vers Strava)
@@ -73,7 +73,7 @@ Ce découpage sert de base à la réorganisation prévue dans `docs/ROADMAP.md`.
 
 | Format | Fichiers | Statut |
 |---|---|---|
-| GVT1 | `core/gvt.*`, `tools/osm_to_gvt.py`, `docs/carte.md` | Actif, utilisé par l'interface et le simulateur. Cache de tuile de 65 536 octets, plus grande tuile mesurée 18 124 octets (extrait de Grenoble) |
+| GVT1 | `core/gvt.*`, `tools/osm_pbf_to_gvt.py`, `docs/carte.md` | Actif, utilisé par l'interface et le simulateur. Cache de tuile de 65 536 octets, plus grande tuile mesurée 18 124 octets (extrait de Grenoble) |
 | GVM1 | `core/map_data.*`, `tools/osm_to_gvm.py` | Ancien, conservé provisoirement. Utilisé seulement par son test |
 | `gps.csv` | `tools/convertir_cols.py`, `convertir_cols_pbf.py` | Base de cols et lieux issue d'OpenStreetMap. Fichier personnel, jamais versionné |
 
