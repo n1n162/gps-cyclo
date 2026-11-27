@@ -10,7 +10,7 @@ Ce document explique comment lancer les tests et consigne chaque rejeu avec sa d
 |---|---|---|
 | `make test` | Alertes, guidage, format de `gps.csv`, moteur du simulateur, montées, noms de cols, trace, FIT, puis `verify_fit.py`, sur un jeu fictif généré | aucun (python3, `garmin-fit-sdk` et `fitdecode` requis, sinon arrêt à `verify_fit.py`, voir B12) |
 | `make cols-format-test` | Lecture du format de `gps.csv` | aucun |
-| `make gvt-test` | Carte GVT1 (format, lecture, vue, remplissage, tracé de lignes) et conversion Overpass | aucun |
+| `make gvt-test` | Carte GVT1 (format, lecture, vue, remplissage, tracé de lignes) et conversion de fixtures GeoJSON synthétiques ; ne teste pas le convertisseur PBF | aucun |
 | `make map-test` | Ancien format de carte GVM1 | aucun (`tests/data/fixture_overpass.geojson` est versionné) |
 | `make nommage` | Nommage des montées avec une vraie base de cols | `tests/data/sortie.gpx` et `tests/data/gps.csv` |
 | `make ui` | Six scénarios d'aperçu de l'interface, télécharge LVGL 9.2.2 | `tests/data/replay2.csv`, généré depuis `tests/data/sortie.gpx` |
@@ -118,7 +118,7 @@ Cause des 5 échecs, lue dans `tests/test_sim.c` (lignes 29 à 59) : le test exi
 
 | Test | Commande | Résultat |
 |---|---|---|
-| Carte GVT1, rendu, conversion Overpass | `make gvt-test` | Réussi (code retour 0), cinq verdicts de synthèse OK |
+| Carte GVT1, rendu et ancienne conversion GeoJSON/Overpass (historique) | `make gvt-test` | Réussi (code retour 0), cinq verdicts de synthèse OK |
 | Ancien format GVM1 | `make map-test` | Réussi (code retour 0) |
 | Décodage BLE | Compilation à la main : `gcc -O2 -Wall -Wextra -Icore tests/test_ble.c core/ble_decode.c -lm` | Réussi, 35 lignes OK. Aucune règle du Makefile ne lance ce test |
 | Nommage réel, interface, simulateur | `make nommage`, `make ui`, `make sim` | **Non lancés** : fichiers personnels, téléchargement de LVGL, SDL2 et accord de Nicolas requis |
