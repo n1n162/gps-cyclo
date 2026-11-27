@@ -19,7 +19,7 @@ import struct
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools'))
-import osm_to_gvt as T  # noqa: E402
+import geojson_to_gvt_fixture as T  # noqa: E402
 
 CELL = 64.0
 
