@@ -135,7 +135,7 @@ python3 -m pip install osmium
 python3 tools/osm_pbf_to_gvt.py france-latest.osm.pbf france.gvt
 ```
 
-Le convertisseur traite le fichier localement : aucune requête Overpass ni connexion réseau n'est nécessaire pendant la conversion. Il lit les objets OSM avec Pyosmium, découpe les lignes et les surfaces dans les tuiles GVT1 et utilise SQLite comme stockage temporaire pour limiter la mémoire.
+Le convertisseur traite le fichier localement : aucune requête Overpass ni connexion réseau n'est nécessaire pendant la conversion. Il lit les objets OSM avec Pyosmium, découpe les lignes et les surfaces dans les tuiles GVT1 et utilise SQLite comme stockage temporaire pour limiter la mémoire. Les fragments sont d'abord insérés sans index secondaire ; l'index SQLite est créé après l'import du PBF. Lors de l'assemblage, le GVT1 final est écrit directement : aucun fichier temporaire `gvt_blobs_*` ne duplique les données de la carte. L'index GVT1 est réservé au début du fichier puis rempli progressivement.
 
 Options utiles :
 
