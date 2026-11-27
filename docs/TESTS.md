@@ -48,7 +48,7 @@ Pourquoi ce jeu : les anciens tests s'appuyaient sur la sortie personnelle de r�
 | `test_route.c` | `core/route`, `core/matcher` | `make test` | jeu fictif (`replay.csv`) |
 | `test_sim.c` | `sim/sim_engine` | `make test` | jeu fictif |
 | `test_fit.c`, `verify_fit.py` | `core/fit` | `make test` | jeu fictif (`replay2.csv`, le test écrit `ride*.fit`) |
-| `test_gvt.c`, `test_mapview.c`, `test_polyfill.c`, `test_linedraw.c`, `verify_gvt.py`, `test_overpass.py` | Carte GVT1, rendu, conversion | `make gvt-test` | données synthétiques de `make_gvt_fixture.py` |
+| `test_gvt.c`, `test_mapview.c`, `test_polyfill.c`, `test_linedraw.c`, `verify_gvt.py` | Carte GVT1, rendu, verification sur donnees synthetiques | `make gvt-test` | données synthétiques de `make_gvt_fixture.py` |
 | `test_map_data.c` | `core/map_data` (GVM1) | `make map-test` | `fixture_overpass.geojson` |
 | `test_ble.c` | `core/ble_decode` | aucune cible Make | aucune |
 | `name_real.c` | Nommage avec la vraie base | `make nommage` | `sortie.gpx`, `gps.csv` personnels |
