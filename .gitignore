@@ -14,3 +14,6 @@ build/
 __pycache__/
 .aider*
 sim/lvgl/
+
+# Image C generee pour l'ecran de demarrage (environ 300 Ko binaires)
+ui/splash_img.c
