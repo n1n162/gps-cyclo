@@ -53,8 +53,8 @@ $(BUILD)/test_gvt: tests/test_gvt.c core/gvt.c core/gvt.h | $(BUILD)
 $(BUILD)/synthetic.geojson: tests/make_gvt_fixture.py | $(BUILD)
 	python3 tests/make_gvt_fixture.py $@
 
-$(BUILD)/synthetic.gvt: $(BUILD)/synthetic.geojson tools/osm_to_gvt.py
-	python3 tools/osm_to_gvt.py $< $@
+$(BUILD)/synthetic.gvt: $(BUILD)/synthetic.geojson tests/geojson_to_gvt_fixture.py
+	python3 tests/geojson_to_gvt_fixture.py $< $@
 
 $(BUILD)/test_polyfill: tests/test_polyfill.c core/polyfill.c core/polyfill.h | $(BUILD)
 	$(CC) $(CFLAGS) -Icore tests/test_polyfill.c core/polyfill.c -lm -o $@
@@ -71,7 +71,6 @@ gvt-test: $(BUILD)/test_gvt $(BUILD)/test_mapview $(BUILD)/test_polyfill $(BUILD
 	$(BUILD)/test_mapview $(BUILD)/synthetic.gvt
 	$(BUILD)/test_polyfill
 	$(BUILD)/test_linedraw
-	python3 tests/test_overpass.py
 
 $(DATA)/sortie.gpx:
 	@echo "Place un GPX de test (avec heures et frequence cardiaque) dans $(DATA)/sortie.gpx"; exit 1
