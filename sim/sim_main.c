@@ -1,7 +1,7 @@
 /* Simulateur du GPS velo sur ordinateur : l'appareil a gauche (la souris joue le doigt), un tableau de commandes a droite.
  * Usage : gps_sim parcours.gpx [sortie.gpx] [cols.csv] [--carte carte.gvt] [--zoom 2] [--selftest]
  *   parcours.gpx : le parcours prevu. sortie.gpx : la sortie rejouee (par defaut le meme fichier). cols.csv : base de cols.
- *   carte.gvt : fond de carte vectoriel sous la trace (docs/carte.md ; tools/osm_to_gvt.py le produit). */
+ *   carte.gvt : fond de carte vectoriel sous la trace (docs/carte.md ; tools/osm_pbf_to_gvt.py le produit). */
 #include <SDL.h>
 #include <math.h>
 #include <stdint.h>
@@ -432,8 +432,8 @@ int main(int argc, char **argv)
             printf("Carte : %d %% du parcours est couvert par la carte\n", total ? 100 * covered / total : 0);
             if (total && covered * 2 < total)
                 fprintf(stderr, "ATTENTION : la carte ne couvre pas (ou peu) ce parcours : la page trace n'aura qu'un fond uni.\n"
-                                "Telecharger la zone du parcours : python3 tools/overpass_fetch.py --gpx %s --out-dir extrait\n"
-                                "puis : python3 tools/osm_to_gvt.py extrait/*.json carte.gvt\n", course);
+                                "Generer la carte depuis un fichier OSM PBF avec tools/osm_pbf_to_gvt.py.\n"
+                                "", course);
         }
     }
     build_panel();
