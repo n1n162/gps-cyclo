@@ -20,7 +20,7 @@ Dans le dossier du dépôt :
 - `CARTE` : un fond de carte (`.gvt`, voir `docs/carte.md`) affiché sur la page trace. Le simulateur indique quelle part du parcours la carte couvre.
 - `OPTS=--zoom 2` : fenêtre deux fois plus grande (écrans Retina).
 
-Au lancement, l'écran de démarrage apparaît 2,5 secondes (un clic le passe). La première compilation télécharge et compile LVGL ; elle génère aussi l'image du splash avec Pillow. Ensuite le lancement est immédiat.
+Au lancement, l'écran de démarrage apparaît 5 secondes (un clic le passe). La première compilation télécharge et compile LVGL ; elle génère aussi l'image du splash avec Pillow. Ensuite le lancement est immédiat.
 
 ## Les commandes du tableau
 - **Pause / Lecture, Début** : la lecture de la sortie.
