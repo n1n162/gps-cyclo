@@ -16,7 +16,7 @@ if [ ! -f build/liblvgl.a ]; then
   ar rcs build/liblvgl.a build/obj/*.o
 fi
 python3 ../tests/make_gvt_demo.py build/demo.geojson
-python3 ../tools/osm_to_gvt.py build/demo.geojson build/demo.gvt > /dev/null
+python3 ../tests/geojson_to_gvt_fixture.py build/demo.geojson build/demo.gvt > /dev/null
 python3 ../tests/make_gvt_fixture.py build/synthetic.geojson
 python3 ../tools/osm_to_gvt.py build/synthetic.geojson build/synthetic.gvt > /dev/null
 gcc -O1 -Wall -Wextra -I. -Ilvgl -I../core -DLV_CONF_INCLUDE_SIMPLE app.c map_preview.c \
