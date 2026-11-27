@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genere un GeoJSON synthetique (deterministe) pour tester tools/osm_to_gvt.py.
+"""Genere un GeoJSON synthetique (deterministe) pour tester la logique de conversion GeoJSON de test.
 
 Usage : python3 tests/make_gvt_fixture.py sortie.geojson
 Le point de depart de l'autoroute (lon 5.00, lat 45.20) sert de repere au test C (voir Makefile).
