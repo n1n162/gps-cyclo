@@ -479,14 +479,14 @@ class PBFToGVT(osmium.SimpleHandler):
             return
         rings = []
         try:
-            for ring in area.outer_rings():
-                pts = ring_coords(ring)
+            for outer in area.outer_rings():
+                pts = ring_coords(outer)
                 if pts:
                     rings.append(pts)
-            for ring in area.inner_rings():
-                pts = ring_coords(ring)
-                if pts:
-                    rings.append(pts)
+                for inner in area.inner_rings(outer):
+                    pts = ring_coords(inner)
+                    if pts:
+                        rings.append(pts)
         except Exception as exc:
             print(f"  surface ignorée ({exc})", file=sys.stderr)
             return
