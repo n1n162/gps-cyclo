@@ -499,33 +499,61 @@ class PBFToGVT(osmium.SimpleHandler):
 
 
 def write_gvt(db, destination, bounds, zmin, zmax):
+    """Ecrit directement le GVT1 final, sans fichier temporaire de blobs."""
     db.commit()
-    cursor = db.execute(
-        "SELECT tile_key, payload FROM records ORDER BY tile_key"
-    )
-    index_entries = []
-    blob_tmp = tempfile.NamedTemporaryFile(prefix="gvt_blobs_", delete=False)
-    blob_path = blob_tmp.name
+    tile_count = db.execute(
+        "SELECT COUNT(DISTINCT tile_key) FROM records"
+    ).fetchone()[0]
+    if tile_count == 0:
+        raise ValueError("Aucune tuile à écrire")
+
+    minlon, minlat, maxlon, maxlat = bounds
+    bbox = [int(round(v * 1e7)) for v in (minlon, minlat, maxlon, maxlat)]
+    base = HEADER_SIZE + INDEX_SIZE * tile_count
+    if base > 0xFFFFFFFF:
+        raise ValueError("Index GVT1 trop volumineux pour les offsets 32 bits")
+
     pos = 0
     biggest = 0
     too_big = 0
-    tile_count = 0
-    try:
+    written_tiles = 0
+    with open(destination, "wb") as out:
+        out.write(HEADER.pack(
+            MAGIC, VERSION, EXTENT, zmin, zmax, 0,
+            tile_count, HEADER_SIZE, *bbox
+        ))
+        # Réserve l'index à sa taille définitive. Il sera rempli au fil de l'écriture.
+        out.write(b"\\0" * (INDEX_SIZE * tile_count))
+        out.seek(base)
+
+        cursor = db.execute(
+            "SELECT tile_key, payload FROM records ORDER BY tile_key"
+        )
         current_key = None
         payloads = []
+
         def flush_tile(key, records):
-            nonlocal pos, biggest, too_big, tile_count
+            nonlocal pos, biggest, too_big, written_tiles
             if key is None:
                 return
             blob = varint(len(records)) + b"".join(records)
             size = len(blob)
+            absolute_offset = base + pos
+            if absolute_offset > 0xFFFFFFFF or size > 0xFFFFFFFF:
+                raise ValueError("Fichier GVT1 trop volumineux pour les offsets 32 bits")
             biggest = max(biggest, size)
             if size > SLOT_BYTES:
                 too_big += 1
-            blob_tmp.write(blob)
-            index_entries.append((key, pos, size))
+            out.write(blob)
+
+            # Ecrit cette entrée à sa place dans l'index, puis revient à la fin des données.
+            end_of_data = out.tell()
+            out.seek(HEADER_SIZE + written_tiles * INDEX_SIZE)
+            out.write(INDEX.pack(key, absolute_offset, size))
+            out.seek(end_of_data)
+
             pos += size
-            tile_count += 1
+            written_tiles += 1
 
         for key, payload in cursor:
             if current_key is None:
@@ -535,32 +563,12 @@ def write_gvt(db, destination, bounds, zmin, zmax):
                 current_key, payloads = key, []
             payloads.append(bytes(payload))
         flush_tile(current_key, payloads)
-        blob_tmp.close()
 
-        minlon, minlat, maxlon, maxlat = bounds
-        bbox = [int(round(v * 1e7)) for v in (minlon, minlat, maxlon, maxlat)]
-        base = HEADER_SIZE + INDEX_SIZE * len(index_entries)
-        with open(destination, "wb") as out:
-            out.write(HEADER.pack(
-                MAGIC, VERSION, EXTENT, zmin, zmax, 0,
-                len(index_entries), HEADER_SIZE, *bbox
-            ))
-            for key, offset, size in index_entries:
-                out.write(INDEX.pack(key, base + offset, size))
-            with open(blob_path, "rb") as src:
-                while True:
-                    chunk = src.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-        return tile_count, base + pos, biggest, too_big
-    finally:
-        if not blob_tmp.closed:
-            blob_tmp.close()
-        try:
-            os.unlink(blob_path)
-        except OSError:
-            pass
+    if written_tiles != tile_count:
+        raise RuntimeError(
+            f"Index incohérent : {tile_count} tuiles prévues, {written_tiles} écrites"
+        )
+    return written_tiles, base + pos, biggest, too_big
 
 
 def main():
@@ -590,7 +598,6 @@ def main():
         db.execute("PRAGMA temp_store=FILE")
         db.execute("PRAGMA cache_size=-65536")  # environ 64 Mio
         db.execute("CREATE TABLE records (tile_key INTEGER NOT NULL, payload BLOB NOT NULL)")
-        db.execute("CREATE INDEX records_key ON records(tile_key)")
 
         handler = PBFToGVT(
             db, args.zmin, args.zmax, args.tolerance,
@@ -602,6 +609,9 @@ def main():
 
         if handler.inserted == 0:
             raise SystemExit("Aucune géométrie exploitable n'a été trouvée.")
+        print("Création de l'index SQLite…", flush=True)
+        db.execute("CREATE INDEX records_key ON records(tile_key)")
+        db.commit()
         print("Assemblage du fichier GVT1…", flush=True)
         tiles, total, biggest, too_big = write_gvt(
             db, args.output, handler.bounds, args.zmin, args.zmax
