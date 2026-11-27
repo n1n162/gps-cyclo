@@ -433,7 +433,7 @@ int main(int argc, char **argv)
             if (total && covered * 2 < total)
                 fprintf(stderr, "ATTENTION : la carte ne couvre pas (ou peu) ce parcours : la page trace n'aura qu'un fond uni.\n"
                                 "Generer la carte depuis un fichier OSM PBF avec tools/osm_pbf_to_gvt.py.\n"
-                                "", course);
+                                "");
         }
     }
     build_panel();
