@@ -17,7 +17,7 @@ Carte Waveshare ESP32-S3-Touch-LCD-3.5 (écran tactile 3,5 pouces 320 x 480, 8 M
     core/    code C commun, sans dépendance (testé sur PC, destiné à ESP-IDF)
     ui/      écrans LVGL 9, polices avec accents, aperçu sur PC
     sim/     simulateur sur PC (SDL2)
-    tools/   scripts Python : conversion OpenStreetMap, base de cols, export Strava
+    tools/   scripts Python : conversion des cartes depuis OSM PBF, base de cols, export Strava
     tests/   tests sur PC et génération des données de rejeu
     docs/    notes techniques et captures d'écran
 
