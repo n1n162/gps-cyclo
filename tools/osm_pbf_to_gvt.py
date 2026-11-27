@@ -641,7 +641,7 @@ class PBFToGVT(osmium.SimpleHandler):
         self.min_size = min_size
         self.areas = areas
         self.bounds = [180.0, 90.0, -180.0, -90.0]
-        self.counts = {"ways_lignes": 0, "surfaces": 0, "objets_ignores": 0}
+        self.counts = {"ways_lignes": 0, "surfaces": 0, "objets_ignores": 0, "aires_osm": 0, "aires_non_classees": 0, "aires_sans_anneau": 0}
         self.inserted = 0
 
     def update_bounds(self, points):
@@ -718,9 +718,11 @@ class PBFToGVT(osmium.SimpleHandler):
     def area(self, area):
         if not self.areas:
             return
+        self.counts["aires_osm"] += 1
         tags = dict(area.tags)
         classification = classify_area(tags)
         if not classification:
+            self.counts["aires_non_classees"] += 1
             return
         rings = []
         try:
@@ -736,6 +738,7 @@ class PBFToGVT(osmium.SimpleHandler):
             print(f"  surface ignorée ({exc})", file=sys.stderr)
             return
         if not rings:
+            self.counts["aires_sans_anneau"] += 1
             return
         self.update_bounds([p for r in rings for p in r])
         self.counts["surfaces"] += 1
@@ -853,6 +856,9 @@ def main():
 
         print("\nBilan")
         print(f"  Ways linéaires classés : {handler.counts['ways_lignes']:,}")
+        print(f"  Objets surfaciques OSM : {handler.counts['aires_osm']:,}")
+        print(f"  Surfaces non classées  : {handler.counts['aires_non_classees']:,}")
+        print(f"  Surfaces sans anneau   : {handler.counts['aires_sans_anneau']:,}")
         print(f"  Surfaces classées      : {handler.counts['surfaces']:,}")
         print(f"  Fragments indexés      : {handler.inserted:,}")
         print(f"  Tuiles produites       : {tiles:,}")
