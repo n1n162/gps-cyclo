@@ -40,7 +40,7 @@ Format : une décision par entrée, jamais réécrite. Pour changer d'avis, ajou
 
 ### D06. Format de carte GVT1
 - Date : 24 octobre 2026
-- Décision : tuiles vectorielles GVT1 (`core/gvt.*`, `tools/osm_to_gvt.py`, `docs/carte.md`). L'ancien format GVM1 est conservé provisoirement.
+- Décision : tuiles vectorielles GVT1 produites depuis OSM PBF (`core/gvt.*`, `tools/osm_pbf_to_gvt.py`, `docs/carte.md`). L'ancien format GVM1 est conservé provisoirement.
 - Sujet ouvert : date de retrait de GVM1 (voir "Décisions à prendre").
 
 ### D07. Rendu de carte
