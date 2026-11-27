@@ -7,7 +7,7 @@ BUILD = build
 DATA = tests/data
 SYN = tests/data/synthetique
 
-.PHONY: all test ui sim nommage map-test gvt-test cols-format-test clean
+.PHONY: all test ui sim nommage map-test gvt-test cols-format-test splash-test clean
 all: test
 
 $(BUILD):
@@ -112,3 +112,8 @@ nommage: $(BUILD)/name_real
 
 clean:
 	rm -rf $(BUILD) $(DATA)/ride*.fit $(DATA)/replay*.csv $(SYN)
+
+
+# Tests unitaires du convertisseur d'image de l'ecran de demarrage (necessite Pillow).
+splash-test:
+	python3 tests/test_splash_to_c.py

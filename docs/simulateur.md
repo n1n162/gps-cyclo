@@ -7,6 +7,7 @@ Le simulateur ouvre une fenêtre avec l'appareil à gauche (la souris joue le r�
 ## Installation (Mac)
 1. Outils de développement : `xcode-select --install` (donne le compilateur et git).
 2. Bibliothèque d'affichage : `brew install sdl2` (Homebrew : https://brew.sh si la commande `brew` n'existe pas).
+3. Conversion de l'image de démarrage : `python3 -m pip install pillow`.
 
 ## Lancer
 Dans le dossier du dépôt :
@@ -19,7 +20,7 @@ Dans le dossier du dépôt :
 - `CARTE` : un fond de carte (`.gvt`, voir `docs/carte.md`) affiché sur la page trace. Le simulateur indique quelle part du parcours la carte couvre.
 - `OPTS=--zoom 2` : fenêtre deux fois plus grande (écrans Retina).
 
-La première fois, la compilation prend une à deux minutes (elle télécharge et compile LVGL). Ensuite le lancement est immédiat.
+Au lancement, l'écran de démarrage apparaît 5 secondes (un clic le passe). La première compilation télécharge et compile LVGL ; elle génère aussi l'image du splash avec Pillow. Ensuite le lancement est immédiat.
 
 ## Les commandes du tableau
 - **Pause / Lecture, Début** : la lecture de la sortie.
@@ -38,7 +39,7 @@ Le moteur de rejeu est testé (`make test`, sur un jeu fictif : voir `docs/TESTS
 - Les positions rejouées sont celles enregistrées, sans bruit de GPS réel.
 - La vitesse de rendu sur ton Mac ne dit rien de celle de l'écran de la carte.
 - Le son et la vibration ne sont pas simulés : le simulateur affiche la dernière alerte.
-- Il n'y a pas encore de fond de carte.
+- Le fond de carte est facultatif : il s'affiche uniquement si `CARTE=...gvt` est fourni.
 
 ## Dépannage
 - *SDL2 est absent* : `brew install sdl2`.
