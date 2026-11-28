@@ -516,6 +516,7 @@ def write_gvt(db, destination, bounds, zmin, zmax):
     pos = 0
     biggest = 0
     too_big = 0
+    zoom_stats = {}
     written_tiles = 0
     with open(destination, "wb") as out:
         out.write(HEADER.pack(
@@ -542,8 +543,13 @@ def write_gvt(db, destination, bounds, zmin, zmax):
             if absolute_offset > 0xFFFFFFFF or size > 0xFFFFFFFF:
                 raise ValueError("Fichier GVT1 trop volumineux pour les offsets 32 bits")
             biggest = max(biggest, size)
+            z = key >> 32
+            stats = zoom_stats.setdefault(z, {"tiles": 0, "max_bytes": 0, "over_cache": 0})
+            stats["tiles"] += 1
+            stats["max_bytes"] = max(stats["max_bytes"], size)
             if size > SLOT_BYTES:
                 too_big += 1
+                stats["over_cache"] += 1
             out.write(blob)
 
             # Ecrit cette entrée à sa place dans l'index, puis revient à la fin des données.
@@ -568,7 +574,7 @@ def write_gvt(db, destination, bounds, zmin, zmax):
         raise RuntimeError(
             f"Index incohérent : {tile_count} tuiles prévues, {written_tiles} écrites"
         )
-    return written_tiles, base + pos, biggest, too_big
+    return written_tiles, base + pos, biggest, too_big, zoom_stats
 
 
 def main():
@@ -613,7 +619,7 @@ def main():
         db.execute("CREATE INDEX records_key ON records(tile_key)")
         db.commit()
         print("Assemblage du fichier GVT1…", flush=True)
-        tiles, total, biggest, too_big = write_gvt(
+        tiles, total, biggest, too_big, zoom_stats = write_gvt(
             db, args.output, handler.bounds, args.zmin, args.zmax
         )
 
@@ -628,10 +634,13 @@ def main():
         print(f"  Taille GVT1            : {total:,} octets ({total / 1e9:.2f} Go)")
         print(f"  Plus grande tuile      : {biggest:,} octets")
         print(f"  Tuiles > cache 65 536  : {too_big:,}")
+        print("  Détail par zoom :")
+        for z, stats in sorted(zoom_stats.items()):
+            print(f"    z{z:02d} : {stats['tiles']:,} tuiles, max {stats['max_bytes']:,} octets, {stats['over_cache']:,} au-dessus du cache")
         print(f"  Emprise OSM            : {handler.bounds}")
         if too_big:
             print("ATTENTION : les tuiles dépassant 65 536 octets risquent de ne pas être affichées par le GPS.")
-            print("Augmenter --tolerance ou --min-size, ou réduire le zoom maximal.")
+            print("Le lecteur actuel ne peut pas afficher ces tuiles ; le détail par zoom ci-dessus permettra de dimensionner le cache.")
         if not args.no_areas and handler.counts["surfaces"] == 0:
             print("ATTENTION : aucune surface GVT1 n'a été produite.")
             print("Vérifier les compteurs d'aires OSM ci-dessus et les tags présents dans le PBF.")
