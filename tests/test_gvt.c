@@ -58,6 +58,40 @@ int main(int argc, char **argv)
     CHECK(gvt_load_index(&g, index, g.n_tiles) == 0, "index invalide");
     if (fails) return 1;
 
+    /* Compare explicitement les deux modes de recherche : index RAM et index lu dans le fichier. */
+    {
+        const uint32_t samples[] = { 0, g.n_tiles / 2, g.n_tiles - 1 };
+        gvt_entry_t expected, actual;
+        for (unsigned s = 0; s < sizeof samples / sizeof samples[0]; s++) {
+            const gvt_entry_t *ram = &index[samples[s]];
+            int found;
+            CHECK(gvt_find_entry(&g, (int)(ram->key >> 32),
+                                 (uint32_t)((ram->key >> 16) & 0xFFFFu),
+                                 (uint32_t)(ram->key & 0xFFFFu), &expected) == 1,
+                  "recherche explicite avec index RAM (entree %u)", samples[s]);
+            CHECK(expected.key == ram->key && expected.offset == ram->offset && expected.size == ram->size,
+                  "resultat RAM different de l'index (entree %u)", samples[s]);
+        }
+
+        /* Desactive l'index RAM : les memes recherches doivent lire l'index sur le fichier. */
+        g.index = NULL;
+        for (unsigned s = 0; s < sizeof samples / sizeof samples[0]; s++) {
+            const gvt_entry_t *ram = &index[samples[s]];
+            int found = gvt_find_entry(&g, (int)(ram->key >> 32),
+                                       (uint32_t)((ram->key >> 16) & 0xFFFFu),
+                                       (uint32_t)(ram->key & 0xFFFFu), &actual);
+            CHECK(found == 1, "recherche fichier : entree %u introuvable (code %d)", samples[s], found);
+            if (found == 1)
+                CHECK(actual.key == ram->key && actual.offset == ram->offset && actual.size == ram->size,
+                      "resultat fichier different de l'index RAM (entree %u)", samples[s]);
+        }
+        CHECK(gvt_find_entry(&g, g.zmin, 65535u, 65535u, &actual) == 0,
+              "une tuile absente doit etre signalee en mode fichier");
+        CHECK(gvt_find_entry(&g, 3, 4, 4, &actual) == 0,
+              "un zoom hors plage doit etre absent en mode fichier");
+        g.index = index;
+    }
+
     for (uint32_t i = 0; i < g.n_tiles; i++) {
         const gvt_entry_t *e = &index[i];
         gvt_tile_it_t it;
