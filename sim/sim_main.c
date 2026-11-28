@@ -416,7 +416,7 @@ int main(int argc, char **argv)
             return 1;
         }
         ui_app_set_map(&app, &map_view, map_canvas);
-        printf("Carte : %u tuiles, zooms %u a %u\\n", (unsigned)map_gvt.n_tiles, map_gvt.zmin, map_gvt.zmax);
+        printf("Carte : %u tuiles, zooms %u a %u\n", (unsigned)map_gvt.n_tiles, map_gvt.zmin, map_gvt.zmax);
         printf("Cache grandes tuiles simulateur : 4 x 256 Ko (configuration PC de test)\\n");
         {   /* la carte couvre-t-elle le parcours ? (un point tous les 500 m, tuiles du zoom 13) */
             int z = 13, total = 0, covered = 0, stride;
