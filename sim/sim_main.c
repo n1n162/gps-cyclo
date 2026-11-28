@@ -412,11 +412,12 @@ int main(int argc, char **argv)
         if (gvt_open(&map_gvt, map_read, mf) != 0) { fprintf(stderr, "Carte illisible (pas un GVT1) : %s\n", mapfile); return 1; }
         mapview_init(&map_view, &map_gvt, map_cache);
         if (mapview_set_big_cache(&map_view, map_big_cache, 256u * 1024u, 4) != 0) {
-            fprintf(stderr, "Configuration du cache des grosses tuiles impossible.\\n");
+            fprintf(stderr, "Configuration du cache des grosses tuiles impossible.\n");
             return 1;
         }
         ui_app_set_map(&app, &map_view, map_canvas);
-        printf("Carte : %u tuiles, zooms %u a %u\n", (unsigned)map_gvt.n_tiles, map_gvt.zmin, map_gvt.zmax);
+        printf("Carte : %u tuiles, zooms %u a %u\\n", (unsigned)map_gvt.n_tiles, map_gvt.zmin, map_gvt.zmax);
+        printf("Cache grandes tuiles simulateur : 4 x 256 Ko (configuration PC de test)\\n");
         {   /* la carte couvre-t-elle le parcours ? (un point tous les 500 m, tuiles du zoom 13) */
             int z = 13, total = 0, covered = 0, stride;
             if (z < map_gvt.zmin) z = map_gvt.zmin;
