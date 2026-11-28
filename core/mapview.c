@@ -12,6 +12,17 @@ void mapview_init(mapview_t *mv, gvt_t *g, uint8_t *mem)
     mv->mem = mem;
 }
 
+int mapview_set_big_cache(mapview_t *mv, uint8_t *mem, uint32_t slot_bytes, uint8_t slots)
+{
+    if (!mv || slots > MAPVIEW_BIG_SLOTS_MAX) return -1;
+    if (slots && (!mem || slot_bytes <= MAPVIEW_SLOT_BYTES)) return -1;
+    mv->big_mem = mem;
+    mv->big_slot_bytes = slots ? slot_bytes : 0;
+    mv->big_slots = slots;
+    memset(mv->big_slot, 0, sizeof mv->big_slot);
+    return 0;
+}
+
 /* Pixel de la zone pour un point (est, nord) en metres dans la projection de la trace. */
 static void to_screen(const mapview_view_t *v, double east, double north, double *sx, double *sy)
 {
@@ -107,9 +118,12 @@ void mapview_xform(const mapview_view_t *v, int z, uint32_t tx, uint32_t ty, flo
 const uint8_t *mapview_get(mapview_t *mv, int z, uint32_t x, uint32_t y, uint32_t *size)
 {
     gvt_entry_t entry;
-    const gvt_entry_t *e = &entry;
     int victim = 0;
     uint8_t *buf;
+
+    if (!mv || !mv->g || !size) return NULL;
+
+    /* Le cache compact reste prioritaire pour les tuiles ordinaires. */
     for (int i = 0; i < MAPVIEW_SLOTS; i++) {
         mapview_slot_t *s = &mv->slot[i];
         if (s->used && s->z == z && s->x == x && s->y == y) {
@@ -119,20 +133,51 @@ const uint8_t *mapview_get(mapview_t *mv, int z, uint32_t x, uint32_t y, uint32_
             return mv->mem + (size_t)i * MAPVIEW_SLOT_BYTES;
         }
     }
+
+    /* Les grosses tuiles ont leur propre LRU : plusieurs restent disponibles pendant les passes de rendu. */
+    for (int i = 0; i < mv->big_slots; i++) {
+        mapview_slot_t *s = &mv->big_slot[i];
+        if (s->used && s->z == z && s->x == x && s->y == y) {
+            s->stamp = ++mv->clock;
+            mv->hits++;
+            mv->big_hits++;
+            *size = s->size;
+            return mv->big_mem + (size_t)i * mv->big_slot_bytes;
+        }
+    }
+
     {
         int found = gvt_find_entry(mv->g, z, x, y, &entry);
         if (found <= 0) { if (found < 0) mv->errors++; return NULL; }
     }
-    if (e->size > MAPVIEW_SLOT_BYTES) { mv->too_big++; return NULL; }
-    for (int i = 0; i < MAPVIEW_SLOTS; i++) {
-        if (!mv->slot[i].used) { victim = i; break; }
-        if (mv->slot[i].stamp < mv->slot[victim].stamp) victim = i;
+
+    if (entry.size <= MAPVIEW_SLOT_BYTES) {
+        if (!mv->mem) { mv->errors++; return NULL; }
+        for (int i = 0; i < MAPVIEW_SLOTS; i++) {
+            if (!mv->slot[i].used) { victim = i; break; }
+            if (mv->slot[i].stamp < mv->slot[victim].stamp) victim = i;
+        }
+        buf = mv->mem + (size_t)victim * MAPVIEW_SLOT_BYTES;
+        mv->slot[victim].used = 0;
+        if (gvt_read_tile(mv->g, &entry, buf, MAPVIEW_SLOT_BYTES) < 0) { mv->errors++; return NULL; }
+        mv->slot[victim] = (mapview_slot_t){ 1, (uint8_t)z, x, y, entry.size, ++mv->clock };
+    } else {
+        if (!mv->big_mem || mv->big_slots == 0 || entry.size > mv->big_slot_bytes) {
+            mv->too_big++;
+            return NULL;
+        }
+        for (int i = 0; i < mv->big_slots; i++) {
+            if (!mv->big_slot[i].used) { victim = i; break; }
+            if (mv->big_slot[i].stamp < mv->big_slot[victim].stamp) victim = i;
+        }
+        buf = mv->big_mem + (size_t)victim * mv->big_slot_bytes;
+        mv->big_slot[victim].used = 0;
+        if (gvt_read_tile(mv->g, &entry, buf, mv->big_slot_bytes) < 0) { mv->errors++; return NULL; }
+        mv->big_slot[victim] = (mapview_slot_t){ 1, (uint8_t)z, x, y, entry.size, ++mv->clock };
+        mv->big_loads++;
     }
-    buf = mv->mem + (size_t)victim * MAPVIEW_SLOT_BYTES;
-    mv->slot[victim].used = 0;
-    if (gvt_read_tile(mv->g, e, buf, MAPVIEW_SLOT_BYTES) < 0) { mv->errors++; return NULL; }
-    mv->slot[victim] = (mapview_slot_t){ 1, (uint8_t)z, x, y, e->size, ++mv->clock };
+
     mv->loads++;
-    *size = e->size;
+    *size = entry.size;
     return buf;
 }
