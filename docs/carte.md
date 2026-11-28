@@ -103,8 +103,9 @@ Dans les deux cas, le hook `ui_hooks.map_cfg_changed` signale chaque changement,
 
 Côté programme hôte (ordinateur ou ESP32-S3) :
 
-1. Fournir une fonction de lecture sur le fichier de la carte, puis `gvt_open` et `gvt_load_index` dans un tampon de `n_tiles` x 16 octets.
-2. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache de tuiles, avec `mapview_init`.
+1. Fournir une fonction de lecture sur le fichier de la carte, puis appeler `gvt_open`.
+2. Pour une petite carte, `gvt_load_index` peut charger l'index en RAM (16 octets par tuile) et accélérer les recherches. Pour une carte nationale, ne pas charger cet index : `gvt_find_entry` et `mapview_get` font la recherche dichotomique directement dans le fichier, sans allocation mémoire proportionnelle au nombre de tuiles.
+3. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache de tuiles, avec `mapview_init`.
 3. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
 
 Mémoire de travail statique à prévoir en PSRAM : image de la carte 341 Ko, cache de tuiles 1 Mo, environ 88 Ko pour le remplissage des surfaces (`polyfill.c`) et 48 Ko de tampons de décodage dans `ui/app.c`. Soit environ 1,5 Mo sur les 8 Mo.
@@ -170,5 +171,5 @@ Mesuré sur le centre de Grenoble (boîte 5.67,45.14,5.78,45.23) avec les surfac
 - Le convertisseur PBF utilise Pyosmium et SQLite pour traiter les grands fichiers sans charger toutes les géométries en mémoire. Le temps de conversion et l'espace temporaire disque dépendent de la taille du PBF et des niveaux de zoom.
 - Le rendu n'a été essayé que sur ordinateur. Le temps d'un dessin complet de la carte sur l'ESP32-S3 n'est pas mesuré : sur le PC de développement, un dessin complet de la carte de Grenoble avec surfaces (jusqu'à 7 800 segments) prend 5 à 17 ms.
 - Un cap qui change de moins de 1,5 degré entre deux dessins laisse un décalage de quelques pixels aux bords de l'écran entre la carte et la trace ; la carte est redessinée dès que ce seuil est dépassé.
-- La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. Les tuiles de plus de 64 Ko ne sont pas affichées (compteur `too_big`).
+- La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. En mode sans index RAM, chaque recherche dichotomique effectue plusieurs petites lectures dans l'index du fichier ; une mise en cache par blocs pourra réduire ces accès si les mesures sur la carte SD le justifient. Les tuiles de plus de 64 Ko ne sont pas affichées (compteur `too_big`).
 - La fonction de lecture de la microSD pour la carte Waveshare n'est pas écrite.
