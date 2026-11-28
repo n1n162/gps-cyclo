@@ -64,7 +64,6 @@ int main(int argc, char **argv)
         gvt_entry_t expected, actual;
         for (unsigned s = 0; s < sizeof samples / sizeof samples[0]; s++) {
             const gvt_entry_t *ram = &index[samples[s]];
-            int found;
             CHECK(gvt_find_entry(&g, (int)(ram->key >> 32),
                                  (uint32_t)((ram->key >> 16) & 0xFFFFu),
                                  (uint32_t)(ram->key & 0xFFFFu), &expected) == 1,
