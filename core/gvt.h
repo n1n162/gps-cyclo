@@ -45,7 +45,7 @@ typedef struct {
     void *ctx;
     uint16_t extent, version;       /* version 1 : lignes ; version 2 : lignes et surfaces */
     uint8_t zmin, zmax;
-    uint32_t n_tiles, index_offset;
+    uint32_t n_tiles, index_offset, file_size;
     int32_t west_e7, south_e7, east_e7, north_e7;
     gvt_entry_t *index;
     /* Cache LRU fixe : 4 blocs de 512 octets (2 Ko), sans allocation dynamique. */
@@ -56,7 +56,7 @@ typedef struct {
 #define GVT_KEY(z, x, y) (((uint64_t)(z) << 32) | ((uint64_t)(x) << 16) | (uint64_t)(y))
 
 /* Lit l'en-tete. Retourne 0 si le fichier est un GVT1 valide, sinon -1. */
-int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx);
+int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx, uint32_t file_size);
 /* Charge l'index dans buf (au moins g->n_tiles entrees). Retourne 0, ou -1 si invalide ou trop petit. */
 int gvt_load_index(gvt_t *g, gvt_entry_t *buf, uint32_t capacity);
 /* Recherche dichotomique dans l'index RAM. Retourne NULL si absent ou si l'index RAM n'est pas charge. */
