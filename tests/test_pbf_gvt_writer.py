@@ -85,6 +85,10 @@ def main():
         assert result[1] == len(raw), result
         assert result[2] == max(map(len, expected_blobs)), result
         assert result[3] == 0, result
+        assert result[4] == {
+            11: {"tiles": 1, "max_bytes": len(expected_blobs[0]), "over_cache": 0},
+            12: {"tiles": 1, "max_bytes": len(expected_blobs[1]), "over_cache": 0},
+        }, result
 
     print("OK assemblage PBF -> GVT1 : en-tête, index trié, offsets, tailles et données")
 
