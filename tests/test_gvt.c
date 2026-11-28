@@ -89,6 +89,27 @@ int main(int argc, char **argv)
               "une tuile absente doit etre signalee en mode fichier");
         CHECK(gvt_find_entry(&g, 3, 4, 4, &actual) == 0,
               "un zoom hors plage doit etre absent en mode fichier");
+
+        /* Une seconde recherche dans le meme bloc doit reutiliser les 512 octets deja lus. */
+        {
+            uint32_t loads_before = g.index_cache_loads;
+            uint32_t hits_before = g.index_cache_hits;
+            const gvt_entry_t *ram = &index[g.n_tiles / 2];
+            int z = (int)(ram->key >> 32);
+            uint32_t x = (uint32_t)((ram->key >> 16) & 0xFFFFu);
+            uint32_t y = (uint32_t)(ram->key & 0xFFFFu);
+            CHECK(gvt_find_entry(&g, z, x, y, &actual) == 1,
+                  "premiere recherche repetee en mode cache");
+            loads_before = g.index_cache_loads;
+            hits_before = g.index_cache_hits;
+            CHECK(gvt_find_entry(&g, z, x, y, &actual) == 1,
+                  "seconde recherche repetee en mode cache");
+            CHECK(g.index_cache_loads == loads_before,
+                  "une recherche repetee a relu un bloc deja en cache");
+            CHECK(g.index_cache_hits > hits_before,
+                  "le cache d'index n'a enregistre aucun hit");
+        }
+        CHECK(g.index_cache_loads > 0, "aucun bloc d'index n'a ete charge");
         g.index = index;
     }
 
