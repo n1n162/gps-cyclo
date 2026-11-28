@@ -135,8 +135,10 @@ int main(int argc, char **argv)
         if (!f) { perror(argv[1]); return 2; }
         CHECK(gvt_open(&g, read_file, f) == 0, "en-tete");
         index = malloc(g.n_tiles * sizeof *index);
-        CHECK(gvt_load_index(&g, index, g.n_tiles) == 0, "index");
+        CHECK(gvt_load_index(&g, index, g.n_tiles) == 0, "index de reference pour le test");
         if (fails) return 1;
+        /* Le cache doit aussi fonctionner sans index en RAM : recherche directe dans le fichier. */
+        g.index = NULL;
         mapview_init(&mv, &g, cache);
 
         gvt_tile_of(15, 45.20, 5.00, &probe_x, &probe_y, NULL, NULL);
