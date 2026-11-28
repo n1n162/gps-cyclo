@@ -64,12 +64,13 @@ int main(int argc, char **argv)
         gvt_entry_t expected, actual;
         for (unsigned s = 0; s < sizeof samples / sizeof samples[0]; s++) {
             const gvt_entry_t *ram = &index[samples[s]];
-            CHECK(gvt_find_entry(&g, (int)(ram->key >> 32),
-                                 (uint32_t)((ram->key >> 16) & 0xFFFFu),
-                                 (uint32_t)(ram->key & 0xFFFFu), &expected) == 1,
-                  "recherche explicite avec index RAM (entree %u)", samples[s]);
-            CHECK(expected.key == ram->key && expected.offset == ram->offset && expected.size == ram->size,
-                  "resultat RAM different de l'index (entree %u)", samples[s]);
+            int found = gvt_find_entry(&g, (int)(ram->key >> 32),
+                                       (uint32_t)((ram->key >> 16) & 0xFFFFu),
+                                       (uint32_t)(ram->key & 0xFFFFu), &expected);
+            CHECK(found == 1, "recherche explicite avec index RAM (entree %u)", samples[s]);
+            if (found == 1)
+                CHECK(expected.key == ram->key && expected.offset == ram->offset && expected.size == ram->size,
+                      "resultat RAM different de l'index (entree %u)", samples[s]);
         }
 
         /* Desactive l'index RAM : les memes recherches doivent lire l'index sur le fichier. */
