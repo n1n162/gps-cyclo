@@ -38,6 +38,15 @@ static void test_open_bounds(FILE *f, uint32_t actual_size)
     index_offset = (uint32_t)h[16] | ((uint32_t)h[17] << 8) | ((uint32_t)h[18] << 16) | ((uint32_t)h[19] << 24);
     n_tiles = (uint32_t)h[12] | ((uint32_t)h[13] << 8) | ((uint32_t)h[14] << 16) | ((uint32_t)h[15] << 24);
     CHECK(gvt_open(&g, read_header, &ctx, actual_size) == 0, "ouverture avec taille de fichier exacte");
+    {
+        gvt_entry_t *tmp = malloc((size_t)n_tiles * sizeof *tmp);
+        CHECK(tmp != NULL, "allocation du test de lecture d'index");
+        if (tmp) {
+            CHECK(gvt_load_index(&g, tmp, n_tiles) != 0,
+                  "refus d'une lecture d'index interrompue (fichier de test limite a l'en-tete)");
+            free(tmp);
+        }
+    }
     CHECK(gvt_open(&g, read_header, &ctx, GVT_HEADER_SIZE - 1) != 0, "refus d'un fichier plus court que l'en-tete");
     ctx.max_read = GVT_HEADER_SIZE - 1;
     CHECK(gvt_open(&g, read_header, &ctx, actual_size) != 0, "refus d'une lecture d'en-tete partielle");
@@ -100,6 +109,16 @@ int main(int argc, char **argv)
     index = malloc(g.n_tiles * sizeof *index);
     CHECK(gvt_load_index(&g, index, g.n_tiles - 1) != 0, "un tampon d'index trop petit doit etre refuse");
     CHECK(gvt_load_index(&g, index, g.n_tiles) == 0, "index invalide");
+    {
+        gvt_entry_t bad = index[0];
+        CHECK(gvt_read_tile(&g, &bad, blob, sizeof blob) > 0, "lecture de la premiere tuile");
+        bad = index[0]; bad.offset = 0;
+        CHECK(gvt_read_tile(&g, &bad, blob, sizeof blob) < 0, "refus d'une tuile qui chevauche l'en-tete/index");
+        bad = index[0]; bad.offset = (uint32_t)file_size - 1u; bad.size = 2;
+        CHECK(gvt_read_tile(&g, &bad, blob, sizeof blob) < 0, "refus d'une tuile qui depasse la fin du fichier");
+        bad = index[0]; bad.size = 0;
+        CHECK(gvt_read_tile(&g, &bad, blob, sizeof blob) < 0, "refus d'une tuile de taille nulle");
+    }
     if (fails) return 1;
 
     /* Compare explicitement les deux modes de recherche : index RAM et index lu dans le fichier. */
