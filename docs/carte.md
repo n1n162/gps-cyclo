@@ -106,7 +106,7 @@ Côté programme hôte (ordinateur ou ESP32-S3) :
 1. Fournir une fonction de lecture sur le fichier de la carte, puis appeler `gvt_open`.
 2. Pour une petite carte, `gvt_load_index` peut charger l'index en RAM (16 octets par tuile) et accélérer les recherches. Pour une carte nationale, ne pas charger cet index : `gvt_find_entry` et `mapview_get` font la recherche dichotomique directement dans le fichier, sans allocation mémoire proportionnelle au nombre de tuiles.
 3. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache de tuiles, avec `mapview_init`.
-3. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
+4. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
 
 Mémoire de travail statique à prévoir en PSRAM : image de la carte 341 Ko, cache de tuiles 1 Mo, environ 88 Ko pour le remplissage des surfaces (`polyfill.c`) et 48 Ko de tampons de décodage dans `ui/app.c`. Soit environ 1,5 Mo sur les 8 Mo.
 
