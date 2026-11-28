@@ -127,6 +127,20 @@ static gvt_index_cache_block_t *get_index_block(gvt_t *g, uint32_t i)
                 return NULL;
         }
     }
+    /* Verifie aussi le raccord avec les blocs voisins : la dichotomie depend d'un ordre global. */
+    {
+        uint8_t edge[GVT_ENTRY_SIZE];
+        if (first > 0) {
+            uint64_t edge_off = (uint64_t)g->index_offset + (uint64_t)(first - 1) * GVT_ENTRY_SIZE;
+            if (edge_off > UINT32_MAX || g->read(g->ctx, (uint32_t)edge_off, edge, sizeof edge) != 0 ||
+                u64le(edge) >= block->entries[0].key) return NULL;
+        }
+        if (first + count < g->n_tiles) {
+            uint64_t edge_off = (uint64_t)g->index_offset + (uint64_t)(first + count) * GVT_ENTRY_SIZE;
+            if (edge_off > UINT32_MAX || g->read(g->ctx, (uint32_t)edge_off, edge, sizeof edge) != 0 ||
+                block->entries[count - 1].key >= u64le(edge)) return NULL;
+        }
+    }
     block->first = first;
     block->stamp = ++g->index_cache_clock;
     block->valid = 1;
@@ -165,8 +179,9 @@ int gvt_find_entry(gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out)
 
 int gvt_read_tile(const gvt_t *g, const gvt_entry_t *e, uint8_t *buf, uint32_t capacity)
 {
-    if (!g || !g->read || !e || !buf || e->size == 0 || e->size > capacity ||
-        (uint64_t)e->offset + e->size > g->file_size || e->size > INT32_MAX) return -1;
+    if (!g || !g->read || !e || !buf || e->size == 0 || e->size > capacity || e->size > INT32_MAX ||
+        (uint64_t)e->offset < (uint64_t)g->index_offset + (uint64_t)g->n_tiles * GVT_ENTRY_SIZE ||
+        (uint64_t)e->offset + e->size > g->file_size) return -1;
     if (g->read(g->ctx, e->offset, buf, e->size) != 0) return -1;
     return (int)e->size;
 }
