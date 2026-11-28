@@ -48,21 +48,21 @@ static int read_mem(void *ctx, uint32_t off, void *dst, uint32_t len)
 /* Deux grosses tuiles doivent rester en cache en même temps ; la troisième évince la moins récente. */
 static void test_big_cache(void)
 {
-    enum { BIG_SIZE = 70000, BIG_SLOT = 75000, BIG_COUNT = 3 };
-    static uint8_t data[BIG_SIZE * BIG_COUNT];
+    enum { BIG_SIZE = 70000, BIG_SLOT = 75000, BIG_COUNT = 3, DATA_START = GVT_ENTRY_SIZE * BIG_COUNT };
+    static uint8_t data[DATA_START + BIG_SIZE * BIG_COUNT];
     static uint8_t normal[MAPVIEW_SLOTS * MAPVIEW_SLOT_BYTES];
     static uint8_t big_mem[2 * BIG_SLOT];
     gvt_entry_t entries[BIG_COUNT];
     mem_ctx_t ctx = { data, sizeof data };
     gvt_t g = { .read = read_mem, .ctx = &ctx, .zmin = 11, .zmax = 11,
-                .n_tiles = BIG_COUNT, .file_size = sizeof data, .index = entries };
+                .n_tiles = BIG_COUNT, .index_offset = 0, .file_size = sizeof data, .index = entries };
     mapview_t mv;
     uint32_t size = 0, before;
     const uint8_t *p;
 
     for (int i = 0; i < BIG_COUNT; i++) {
-        memset(data + i * BIG_SIZE, 0x31 + i, BIG_SIZE);
-        entries[i] = (gvt_entry_t){ GVT_KEY(11, (uint32_t)(i + 1), 1), (uint32_t)(i * BIG_SIZE), BIG_SIZE };
+        memset(data + DATA_START + i * BIG_SIZE, 0x31 + i, BIG_SIZE);
+        entries[i] = (gvt_entry_t){ GVT_KEY(11, (uint32_t)(i + 1), 1), (uint32_t)(DATA_START + i * BIG_SIZE), BIG_SIZE };
     }
     mapview_init(&mv, &g, normal);
     CHECK(mapview_set_big_cache(&mv, big_mem, BIG_SLOT, 2) == 0, "configuration de deux emplacements grands");
