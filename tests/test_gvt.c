@@ -17,6 +17,46 @@ static int read_file(void *ctx, uint32_t off, void *dst, uint32_t len)
     return fread(dst, 1, len, f) == len ? 0 : -1;
 }
 
+typedef struct { const uint8_t *data; uint32_t length; } header_ctx_t;
+static int read_header(void *ctx, uint32_t off, void *dst, uint32_t len)
+{
+    header_ctx_t *m = ctx;
+    if ((uint64_t)off + len > m->length) return -1;
+    memcpy(dst, m->data + off, len);
+    return 0;
+}
+
+static void test_open_bounds(FILE *f, uint32_t actual_size)
+{
+    uint8_t h[GVT_HEADER_SIZE];
+    header_ctx_t ctx = { h, sizeof h };
+    gvt_t g;
+    uint32_t index_offset, n_tiles;
+    CHECK(fseek(f, 0, SEEK_SET) == 0 && fread(h, 1, sizeof h, f) == sizeof h,
+          "lecture de l'en-tete pour tests de limites");
+    if (fails) return;
+    index_offset = (uint32_t)h[16] | ((uint32_t)h[17] << 8) | ((uint32_t)h[18] << 16) | ((uint32_t)h[19] << 24);
+    n_tiles = (uint32_t)h[12] | ((uint32_t)h[13] << 8) | ((uint32_t)h[14] << 16) | ((uint32_t)h[15] << 24);
+    CHECK(gvt_open(&g, read_header, &ctx, actual_size) == 0, "ouverture avec taille de fichier exacte");
+    CHECK(gvt_open(&g, read_header, &ctx, GVT_HEADER_SIZE - 1) != 0, "refus d'un fichier plus court que l'en-tete");
+    CHECK(gvt_open(&g, read_header, &ctx, index_offset + n_tiles * GVT_ENTRY_SIZE - 1u) != 0,
+          "refus d'un index tronque d'un octet");
+    {
+        uint8_t saved[4];
+        memcpy(saved, h + 16, 4);
+        memset(h + 16, 0, 4);
+        CHECK(gvt_open(&g, read_header, &ctx, actual_size) != 0, "refus d'un index place dans l'en-tete");
+        memcpy(h + 16, saved, 4);
+    }
+    {
+        uint8_t saved[4];
+        memcpy(saved, h + 12, 4);
+        memset(h + 12, 0xFF, 4);
+        CHECK(gvt_open(&g, read_header, &ctx, actual_size) != 0, "refus d'un index annonce au-dela du fichier");
+        memcpy(h + 12, saved, 4);
+    }
+}
+
 static double seg_dist(double px, double py, double ax, double ay, double bx, double by)
 {
     double dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
@@ -48,10 +88,11 @@ int main(int argc, char **argv)
     fseek(f, 0, SEEK_END);
     file_size = ftell(f);
 
-    CHECK(gvt_open(&g, read_file, f) == 0, "en-tete invalide");
+    CHECK(gvt_open(&g, read_file, f, (uint32_t)file_size) == 0, "en-tete invalide");
     if (fails) return 1;
     CHECK(g.zmin == 11 && g.zmax == 15 && g.extent == GVT_EXTENT, "zooms %u-%u, etendue %u", g.zmin, g.zmax, g.extent);
     CHECK(g.version == GVT_VERSION, "version %u attendue %u", g.version, GVT_VERSION);
+    test_open_bounds(f, (uint32_t)file_size);
     CHECK(g.n_tiles > 0, "aucune tuile");
     index = malloc(g.n_tiles * sizeof *index);
     CHECK(gvt_load_index(&g, index, g.n_tiles - 1) != 0, "un tampon d'index trop petit doit etre refuse");
