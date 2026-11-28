@@ -106,7 +106,8 @@ void mapview_xform(const mapview_view_t *v, int z, uint32_t tx, uint32_t ty, flo
 
 const uint8_t *mapview_get(mapview_t *mv, int z, uint32_t x, uint32_t y, uint32_t *size)
 {
-    const gvt_entry_t *e;
+    gvt_entry_t entry;
+    const gvt_entry_t *e = &entry;
     int victim = 0;
     uint8_t *buf;
     for (int i = 0; i < MAPVIEW_SLOTS; i++) {
@@ -118,8 +119,10 @@ const uint8_t *mapview_get(mapview_t *mv, int z, uint32_t x, uint32_t y, uint32_
             return mv->mem + (size_t)i * MAPVIEW_SLOT_BYTES;
         }
     }
-    e = gvt_find(mv->g, z, x, y);
-    if (!e) return NULL;
+    {
+        int found = gvt_find_entry(mv->g, z, x, y, &entry);
+        if (found <= 0) { if (found < 0) mv->errors++; return NULL; }
+    }
     if (e->size > MAPVIEW_SLOT_BYTES) { mv->too_big++; return NULL; }
     for (int i = 0; i < MAPVIEW_SLOTS; i++) {
         if (!mv->slot[i].used) { victim = i; break; }
