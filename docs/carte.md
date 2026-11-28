@@ -4,7 +4,7 @@ Cette conception utilise exclusivement les fichiers OpenStreetMap .osm.pbf comme
 
 ## Principe
 
-Une carte est un fichier unique sur la microSD. Il contient des **tuiles** de la grille XYZ (Web Mercator), chacune avec les lignes et les surfaces à dessiner à un zoom donné. L'appareil ne lit que les 2 à 12 tuiles visibles, grâce à un index chargé en PSRAM au démarrage. La carte est dessinée dans une image en mémoire, qui n'est refaite que quand c'est nécessaire.
+Une carte est un fichier unique sur la microSD. Il contient des **tuiles** de la grille XYZ (Web Mercator), chacune avec les lignes et les surfaces à dessiner à un zoom donné. L'appareil ne lit que les tuiles visibles. Pour une carte nationale, l'index peut rester sur la microSD et être recherché par dichotomie, sans le charger en PSRAM. La carte est dessinée dans une image en mémoire, qui n'est refaite que quand c'est nécessaire.
 
 Contenu (format version 2) :
 - **lignes** : routes, chemins, cours d'eau, voies ferrées ;
@@ -90,7 +90,7 @@ Dans les deux cas, le hook `ui_hooks.map_cfg_changed` signale chaque changement,
 | `tools/osm_pbf_to_gvt.py` | convertisseur unique .osm.pbf vers GVT1 ; lecture Pyosmium, stockage temporaire SQLite |
 | `tools/osm_pbf_to_gvl.py` | extraction des noms de villes et villages depuis le même PBF vers GVL1 |
 | `core/gvt.h`, `core/gvt.c` | lecteur C : en-tête, index, recherche d'une tuile, décodage des lignes et des surfaces |
-| `core/mapview.h`, `core/mapview.c` | vue carte sans LVGL : niveau de zoom, tuiles à lire, passage tuile vers pixels, cache de 16 tuiles |
+| `core/mapview.h`, `core/mapview.c` | vue carte sans LVGL : niveau de zoom, tuiles à lire, passage tuile vers pixels, cache compact et cache optionnel des grosses tuiles |
 | `core/polyfill.h`, `core/polyfill.c` | remplissage de surfaces (pair-impair) dans un tampon RGB565 |
 | `core/linedraw.h`, `core/linedraw.c` | segments épais lissés à bouts arrondis dans un tampon RGB565 |
 | `ui/app.c`, `ui/app.h` | image de la carte dans la page trace : `ui_app_set_map`, `ui_app_set_map_theme` |
@@ -105,10 +105,12 @@ Côté programme hôte (ordinateur ou ESP32-S3) :
 
 1. Fournir une fonction de lecture sur le fichier de la carte, puis appeler `gvt_open`.
 2. Pour une petite carte, `gvt_load_index` peut charger l'index en RAM (16 octets par tuile) et accélérer les recherches. Pour une carte nationale, ne pas charger cet index : `gvt_find_entry` et `mapview_get` font la recherche dichotomique directement dans le fichier, sans allocation mémoire proportionnelle au nombre de tuiles.
-3. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache de tuiles, avec `mapview_init`.
-4. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
+3. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache courant, avec `mapview_init`.
+4. Facultatif : fournir un second tampon pour les grosses tuiles avec `mapview_set_big_cache(&mv, mem, taille_emplacement, nombre_emplacements)`. Ce cache LRU est séparé du cache compact et peut garder plusieurs grosses tuiles simultanément. Le code accepte jusqu'à `MAPVIEW_BIG_SLOTS_MAX` emplacements ; la mémoire est entièrement fournie par l'appelant. Sans ce second cache, les tuiles dépassant 64 Ko restent refusées.
+5. Fournir `UI_MAP_BUF_BYTES` octets (341 Ko) pour l'image de la carte : `ui_app_set_map(&app, &mv, canvas)`. `ui_app_set_map(&app, NULL, NULL)` enlève la carte. Sans carte, la page trace est inchangée.
 
-Mémoire de travail statique à prévoir en PSRAM : image de la carte 341 Ko, cache de tuiles 1 Mo, environ 88 Ko pour le remplissage des surfaces (`polyfill.c`) et 48 Ko de tampons de décodage dans `ui/app.c`. Soit environ 1,5 Mo sur les 8 Mo.
+
+Mémoire de travail à prévoir en PSRAM : image de la carte 341 Ko, cache compact 1 Mo, environ 88 Ko pour le remplissage des surfaces (`polyfill.c`) et 48 Ko de tampons de décodage dans `ui/app.c`, auxquels s'ajoute le cache optionnel des grosses tuiles selon sa configuration. Le simulateur PC utilise provisoirement 4 emplacements de 256 Ko (1 Mo) pour tester ce second niveau ; ce dimensionnement n'est pas encore retenu pour l'ESP32-S3. Il sera fixé après mesure des tailles aux zooms 11 à 15.
 
 La carte est centrée sur le même point que la trace (le point du parcours le plus proche de la position), avec la même échelle et la même rotation (nord en haut ou trace devant). Elle n'a donc pas besoin de latitude et longitude dans `ui_sample_t`.
 
@@ -171,5 +173,5 @@ Mesuré sur le centre de Grenoble (boîte 5.67,45.14,5.78,45.23) avec les surfac
 - Le convertisseur PBF utilise Pyosmium et SQLite pour traiter les grands fichiers sans charger toutes les géométries en mémoire. Le temps de conversion et l'espace temporaire disque dépendent de la taille du PBF et des niveaux de zoom.
 - Le rendu n'a été essayé que sur ordinateur. Le temps d'un dessin complet de la carte sur l'ESP32-S3 n'est pas mesuré : sur le PC de développement, un dessin complet de la carte de Grenoble avec surfaces (jusqu'à 7 800 segments) prend 5 à 17 ms.
 - Un cap qui change de moins de 1,5 degré entre deux dessins laisse un décalage de quelques pixels aux bords de l'écran entre la carte et la trace ; la carte est redessinée dès que ce seuil est dépassé.
-- La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. En mode sans index RAM, chaque recherche dichotomique effectue plusieurs petites lectures dans l'index du fichier ; une mise en cache par blocs pourra réduire ces accès si les mesures sur la carte SD le justifient. Les tuiles de plus de 64 Ko ne sont pas affichées (compteur `too_big`).
+- La lecture d'une tuile sur la microSD se fait pendant le dessin : une tuile lente bloque l'affichage. En mode sans index RAM, chaque recherche dichotomique effectue plusieurs petites lectures dans l'index du fichier ; une mise en cache par blocs pourra réduire ces accès si les mesures sur la carte SD le justifient. Les tuiles de plus de 64 Ko utilisent le cache optionnel des grosses tuiles ; celles qui dépassent la capacité configurée sont refusées (compteur `too_big`).
 - La fonction de lecture de la microSD pour la carte Waveshare n'est pas écrite.
