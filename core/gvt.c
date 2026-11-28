@@ -66,6 +66,43 @@ const gvt_entry_t *gvt_find(const gvt_t *g, int z, uint32_t x, uint32_t y)
     return NULL;
 }
 
+/* Lecture d'une seule entree de l'index sur le support (sans allocation). */
+static int read_index_entry(const gvt_t *g, uint32_t i, gvt_entry_t *e)
+{
+    uint8_t raw[GVT_ENTRY_SIZE];
+    uint64_t off;
+    if (!g || !g->read || !e || i >= g->n_tiles) return -1;
+    off = (uint64_t)g->index_offset + (uint64_t)i * GVT_ENTRY_SIZE;
+    if (off > UINT32_MAX || g->read(g->ctx, (uint32_t)off, raw, sizeof raw) != 0) return -1;
+    e->key = u64le(raw);
+    e->offset = u32le(raw + 8);
+    e->size = u32le(raw + 12);
+    return 0;
+}
+
+int gvt_find_entry(const gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out)
+{
+    uint64_t key;
+    uint32_t lo = 0, hi;
+    if (!g || !out || z < g->zmin || z > g->zmax || x > 65535u || y > 65535u) return 0;
+    if (g->index) {
+        const gvt_entry_t *e = gvt_find(g, z, x, y);
+        if (!e) return 0;
+        *out = *e;
+        return 1;
+    }
+    key = GVT_KEY(z, x, y);
+    hi = g->n_tiles;
+    while (lo < hi) {
+        uint32_t mid = lo + (hi - lo) / 2;
+        gvt_entry_t e;
+        if (read_index_entry(g, mid, &e) != 0) return -1;
+        if (e.key == key) { *out = e; return 1; }
+        if (e.key < key) lo = mid + 1; else hi = mid;
+    }
+    return 0;
+}
+
 int gvt_read_tile(const gvt_t *g, const gvt_entry_t *e, uint8_t *buf, uint32_t capacity)
 {
     if (!g || !g->read || !e || !buf || e->size > capacity) return -1;
