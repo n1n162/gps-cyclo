@@ -19,6 +19,8 @@ extern "C" {
 #define GVT_MAX_RINGS   64      /* anneaux maximum d'une surface */
 #define GVT_HEADER_SIZE 36u
 #define GVT_ENTRY_SIZE  16u
+#define GVT_INDEX_CACHE_ENTRIES 32u  /* 32 entrees = 512 octets lus en une fois */
+#define GVT_INDEX_CACHE_BLOCKS  4u
 
 enum {
     GVT_ROAD_MAJOR = 1, GVT_ROAD_SECONDARY, GVT_ROAD_LOCAL, GVT_STREET, GVT_CYCLEWAY,
@@ -33,6 +35,12 @@ typedef int (*gvt_read_fn)(void *ctx, uint32_t offset, void *dst, uint32_t len);
 typedef struct { uint64_t key; uint32_t offset, size; } gvt_entry_t;
 
 typedef struct {
+    uint8_t valid;
+    uint32_t first, stamp;
+    gvt_entry_t entries[GVT_INDEX_CACHE_ENTRIES];
+} gvt_index_cache_block_t;
+
+typedef struct {
     gvt_read_fn read;
     void *ctx;
     uint16_t extent, version;       /* version 1 : lignes ; version 2 : lignes et surfaces */
@@ -40,6 +48,9 @@ typedef struct {
     uint32_t n_tiles, index_offset;
     int32_t west_e7, south_e7, east_e7, north_e7;
     gvt_entry_t *index;
+    /* Cache LRU fixe : 4 blocs de 512 octets (2 Ko), sans allocation dynamique. */
+    gvt_index_cache_block_t index_cache[GVT_INDEX_CACHE_BLOCKS];
+    uint32_t index_cache_clock, index_cache_loads, index_cache_hits;
 } gvt_t;
 
 #define GVT_KEY(z, x, y) (((uint64_t)(z) << 32) | ((uint64_t)(x) << 16) | (uint64_t)(y))
@@ -52,7 +63,7 @@ int gvt_load_index(gvt_t *g, gvt_entry_t *buf, uint32_t capacity);
 const gvt_entry_t *gvt_find(const gvt_t *g, int z, uint32_t x, uint32_t y);
 /* Recherche dichotomique sans charger l'index : lit les entrees directement dans le fichier.
  * Copie le resultat dans out. Retourne 1 si trouve, 0 si absent, -1 si erreur de lecture. */
-int gvt_find_entry(const gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out);
+int gvt_find_entry(gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out);
 /* Lit le contenu d'une tuile. Retourne le nombre d'octets lus, ou -1. */
 int gvt_read_tile(const gvt_t *g, const gvt_entry_t *e, uint8_t *buf, uint32_t capacity);
 
