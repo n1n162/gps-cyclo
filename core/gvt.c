@@ -66,37 +66,71 @@ const gvt_entry_t *gvt_find(const gvt_t *g, int z, uint32_t x, uint32_t y)
     return NULL;
 }
 
-/* Lecture d'une seule entree de l'index sur le support (sans allocation). */
-static int read_index_entry(const gvt_t *g, uint32_t i, gvt_entry_t *e)
+/* Charge un bloc contigu de 32 entrees (512 octets) ou le retrouve dans le cache LRU. */
+static gvt_index_cache_block_t *get_index_block(gvt_t *g, uint32_t i)
 {
-    uint8_t raw[GVT_ENTRY_SIZE];
+    uint32_t first = (i / GVT_INDEX_CACHE_ENTRIES) * GVT_INDEX_CACHE_ENTRIES;
+    uint32_t count = g->n_tiles - first;
+    int victim = 0;
+    uint8_t raw[GVT_ENTRY_SIZE * GVT_INDEX_CACHE_ENTRIES];
     uint64_t off;
-    if (!g || !g->read || !e || i >= g->n_tiles) return -1;
-    off = (uint64_t)g->index_offset + (uint64_t)i * GVT_ENTRY_SIZE;
-    if (off > UINT32_MAX || g->read(g->ctx, (uint32_t)off, raw, sizeof raw) != 0) return -1;
-    e->key = u64le(raw);
-    e->offset = u32le(raw + 8);
-    e->size = u32le(raw + 12);
+
+    if (count > GVT_INDEX_CACHE_ENTRIES) count = GVT_INDEX_CACHE_ENTRIES;
+    for (uint32_t b = 0; b < GVT_INDEX_CACHE_BLOCKS; b++) {
+        gvt_index_cache_block_t *block = &g->index_cache[b];
+        if (block->valid && block->first == first) {
+            block->stamp = ++g->index_cache_clock;
+            g->index_cache_hits++;
+            return block;
+        }
+        if (!g->index_cache[victim].valid ||
+            (block->valid && block->stamp < g->index_cache[victim].stamp))
+            victim = (int)b;
+    }
+
+    off = (uint64_t)g->index_offset + (uint64_t)first * GVT_ENTRY_SIZE;
+    if (off > UINT32_MAX ||
+        g->read(g->ctx, (uint32_t)off, raw, count * GVT_ENTRY_SIZE) != 0)
+        return NULL;
+
+    gvt_index_cache_block_t *block = &g->index_cache[victim];
+    for (uint32_t j = 0; j < count; j++) {
+        const uint8_t *p = raw + j * GVT_ENTRY_SIZE;
+        block->entries[j].key = u64le(p);
+        block->entries[j].offset = u32le(p + 8);
+        block->entries[j].size = u32le(p + 12);
+        if (j && block->entries[j].key <= block->entries[j - 1].key) return NULL;
+    }
+    block->first = first;
+    block->stamp = ++g->index_cache_clock;
+    block->valid = 1;
+    g->index_cache_loads++;
+    return block;
+}
+
+/* Acces a une entree de l'index : RAM complete si disponible, sinon cache de blocs SD. */
+static int get_index_entry(gvt_t *g, uint32_t i, gvt_entry_t *out)
+{
+    if (!g || !out || i >= g->n_tiles) return -1;
+    if (g->index) { *out = g->index[i]; return 0; }
+    if (!g->read) return -1;
+    gvt_index_cache_block_t *block = get_index_block(g, i);
+    if (!block) return -1;
+    *out = block->entries[i - block->first];
     return 0;
 }
 
-int gvt_find_entry(const gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out)
+int gvt_find_entry(gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out)
 {
     uint64_t key;
     uint32_t lo = 0, hi;
     if (!g || !out || z < g->zmin || z > g->zmax || x > 65535u || y > 65535u) return 0;
-    if (g->index) {
-        const gvt_entry_t *e = gvt_find(g, z, x, y);
-        if (!e) return 0;
-        *out = *e;
-        return 1;
-    }
     key = GVT_KEY(z, x, y);
     hi = g->n_tiles;
     while (lo < hi) {
         uint32_t mid = lo + (hi - lo) / 2;
         gvt_entry_t e;
-        if (read_index_entry(g, mid, &e) != 0) return -1;
+        if (get_index_entry(g, mid, &e) != 0) return -1;
         if (e.key == key) { *out = e; return 1; }
         if (e.key < key) lo = mid + 1; else hi = mid;
     }
