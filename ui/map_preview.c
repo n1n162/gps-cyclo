@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     scen = argv[2];
     theme = argc == 4 && strcmp(argv[3], "clair") == 0;
     f = fopen(argv[1], "rb");
-    if (!f || gvt_open(&g, read_file, f) != 0) { fprintf(stderr, "carte illisible : %s\n", argv[1]); return 1; }
+    if (!f || fseek(f, 0, SEEK_END) != 0 || ftell(f) < 0 || (uint64_t)ftell(f) > UINT32_MAX || gvt_open(&g, read_file, f, (uint32_t)ftell(f)) != 0) { fprintf(stderr, "carte illisible : %s\n", argv[1]); return 1; }
     mapview_init(&mv, &g, cache);
 
     route_init(&r, X, Y, E, 4000, 10.0f);
