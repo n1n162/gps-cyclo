@@ -3,7 +3,7 @@
 
 /* Lecteur de cartes vectorielles en tuiles GVT1 (format : docs/carte.md).
  * Le fichier est lu par une fonction fournie par l'appelant (fopen sur ordinateur, carte SD sur l'appareil).
- * L'index (16 octets par tuile) est charge une fois dans un tampon fourni par l'appelant (PSRAM sur la carte). */
+ * L'index peut etre charge en RAM (petites cartes) ou recherche directement dans le fichier (grandes cartes). */
 
 #include <stdint.h>
 
@@ -48,8 +48,11 @@ typedef struct {
 int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx);
 /* Charge l'index dans buf (au moins g->n_tiles entrees). Retourne 0, ou -1 si invalide ou trop petit. */
 int gvt_load_index(gvt_t *g, gvt_entry_t *buf, uint32_t capacity);
-/* Recherche dichotomique. Retourne NULL si la tuile n'existe pas. */
+/* Recherche dichotomique dans l'index RAM. Retourne NULL si absent ou si l'index RAM n'est pas charge. */
 const gvt_entry_t *gvt_find(const gvt_t *g, int z, uint32_t x, uint32_t y);
+/* Recherche dichotomique sans charger l'index : lit les entrees directement dans le fichier.
+ * Copie le resultat dans out. Retourne 1 si trouve, 0 si absent, -1 si erreur de lecture. */
+int gvt_find_entry(const gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out);
 /* Lit le contenu d'une tuile. Retourne le nombre d'octets lus, ou -1. */
 int gvt_read_tile(const gvt_t *g, const gvt_entry_t *e, uint8_t *buf, uint32_t capacity);
 
