@@ -71,7 +71,8 @@ static gvt_index_cache_block_t *get_index_block(gvt_t *g, uint32_t i)
 {
     uint32_t first = (i / GVT_INDEX_CACHE_ENTRIES) * GVT_INDEX_CACHE_ENTRIES;
     uint32_t count = g->n_tiles - first;
-    int victim = 0;
+    int victim = -1;
+    uint32_t oldest = UINT32_MAX;
     uint8_t raw[GVT_ENTRY_SIZE * GVT_INDEX_CACHE_ENTRIES];
     uint64_t off;
 
@@ -83,17 +84,17 @@ static gvt_index_cache_block_t *get_index_block(gvt_t *g, uint32_t i)
             g->index_cache_hits++;
             return block;
         }
-        if (!g->index_cache[victim].valid ||
-            (block->valid && block->stamp < g->index_cache[victim].stamp))
-            victim = (int)b;
+        if (!block->valid) { victim = (int)b; break; }
+        if (block->stamp < oldest) { oldest = block->stamp; victim = (int)b; }
     }
+    if (victim < 0) return NULL;
 
+    gvt_index_cache_block_t *block = &g->index_cache[victim];
+    block->valid = 0;  /* ne jamais conserver un ancien bloc si le remplissage echoue */
     off = (uint64_t)g->index_offset + (uint64_t)first * GVT_ENTRY_SIZE;
     if (off > UINT32_MAX ||
         g->read(g->ctx, (uint32_t)off, raw, count * GVT_ENTRY_SIZE) != 0)
         return NULL;
-
-    gvt_index_cache_block_t *block = &g->index_cache[victim];
     for (uint32_t j = 0; j < count; j++) {
         const uint8_t *p = raw + j * GVT_ENTRY_SIZE;
         block->entries[j].key = u64le(p);
