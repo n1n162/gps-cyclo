@@ -409,7 +409,7 @@ int main(int argc, char **argv)
     if (mapfile) {
         FILE *mf = fopen(mapfile, "rb");
         if (!mf) { perror(mapfile); return 1; }
-        if (gvt_open(&map_gvt, map_read, mf) != 0) { fprintf(stderr, "Carte illisible (pas un GVT1) : %s\n", mapfile); return 1; }
+        if (fseek(mf, 0, SEEK_END) != 0 || ftell(mf) < 0 || (uint64_t)ftell(mf) > UINT32_MAX || gvt_open(&map_gvt, map_read, mf, (uint32_t)ftell(mf)) != 0) { fprintf(stderr, "Carte illisible (pas un GVT1) : %s\n", mapfile); return 1; }
         mapview_init(&map_view, &map_gvt, map_cache);
         if (mapview_set_big_cache(&map_view, map_big_cache, 256u * 1024u, 4) != 0) {
             fprintf(stderr, "Configuration du cache des grosses tuiles impossible.\n");
