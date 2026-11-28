@@ -1,19 +1,21 @@
 #include "gvt.h"
 #include <math.h>
+#include <limits.h>
 #include <string.h>
 
 static uint16_t u16le(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); }
 static uint32_t u32le(const uint8_t *p) { return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24); }
 static uint64_t u64le(const uint8_t *p) { return (uint64_t)u32le(p) | ((uint64_t)u32le(p + 4) << 32); }
 
-int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx)
+int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx, uint32_t file_size)
 {
     uint8_t h[GVT_HEADER_SIZE];
-    if (!g || !read) return -1;
+    if (!g || !read || file_size < GVT_HEADER_SIZE) return -1;
     memset(g, 0, sizeof(*g));
     if (read(ctx, 0, h, sizeof h) != 0) return -1;
     if (memcmp(h, "GVT1", 4) != 0 || (u16le(h + 4) != 1 && u16le(h + 4) != GVT_VERSION) || u16le(h + 6) != GVT_EXTENT) return -1;
     g->read = read;
+    g->file_size = file_size;
     g->ctx = ctx;
     g->version = u16le(h + 4);
     g->extent = u16le(h + 6);
@@ -25,7 +27,11 @@ int gvt_open(gvt_t *g, gvt_read_fn read, void *ctx)
     g->south_e7 = (int32_t)u32le(h + 24);
     g->east_e7 = (int32_t)u32le(h + 28);
     g->north_e7 = (int32_t)u32le(h + 32);
-    if (g->zmin > g->zmax || g->zmax > 16 || g->index_offset < GVT_HEADER_SIZE) return -1;
+    if (g->zmin > g->zmax || g->zmax > 16 || g->index_offset < GVT_HEADER_SIZE || g->n_tiles == 0) return -1;
+    {
+        uint64_t index_end = (uint64_t)g->index_offset + (uint64_t)g->n_tiles * GVT_ENTRY_SIZE;
+        if (index_end > file_size || index_end > UINT32_MAX) return -1;
+    }
     return 0;
 }
 
@@ -45,6 +51,14 @@ int gvt_load_index(gvt_t *g, gvt_entry_t *buf, uint32_t capacity)
             e->offset = u32le(p + 8);
             e->size = u32le(p + 12);
             if (done + i > 0 && e->key <= buf[done + i - 1].key) return -1;   /* index trie strictement */
+            if (e->size == 0 || (uint64_t)e->offset < (uint64_t)g->index_offset + (uint64_t)g->n_tiles * GVT_ENTRY_SIZE ||
+                (uint64_t)e->offset + e->size > g->file_size) return -1;
+            {
+                uint32_t z = (uint32_t)(e->key >> 32);
+                uint32_t x = (uint32_t)((e->key >> 16) & 0xFFFFu);
+                uint32_t y = (uint32_t)(e->key & 0xFFFFu);
+                if (z < g->zmin || z > g->zmax || x >= (1u << z) || y >= (1u << z)) return -1;
+            }
         }
         done += n;
     }
@@ -101,6 +115,17 @@ static gvt_index_cache_block_t *get_index_block(gvt_t *g, uint32_t i)
         block->entries[j].offset = u32le(p + 8);
         block->entries[j].size = u32le(p + 12);
         if (j && block->entries[j].key <= block->entries[j - 1].key) return NULL;
+        {
+            gvt_entry_t *e = &block->entries[j];
+            uint64_t index_end = (uint64_t)g->index_offset + (uint64_t)g->n_tiles * GVT_ENTRY_SIZE;
+            uint32_t z = (uint32_t)(e->key >> 32);
+            uint32_t x = (uint32_t)((e->key >> 16) & 0xFFFFu);
+            uint32_t y = (uint32_t)(e->key & 0xFFFFu);
+            if (e->size == 0 || (uint64_t)e->offset < index_end ||
+                (uint64_t)e->offset + e->size > g->file_size ||
+                z < g->zmin || z > g->zmax || x >= (1u << z) || y >= (1u << z))
+                return NULL;
+        }
     }
     block->first = first;
     block->stamp = ++g->index_cache_clock;
@@ -140,7 +165,8 @@ int gvt_find_entry(gvt_t *g, int z, uint32_t x, uint32_t y, gvt_entry_t *out)
 
 int gvt_read_tile(const gvt_t *g, const gvt_entry_t *e, uint8_t *buf, uint32_t capacity)
 {
-    if (!g || !g->read || !e || !buf || e->size > capacity) return -1;
+    if (!g || !g->read || !e || !buf || e->size == 0 || e->size > capacity ||
+        (uint64_t)e->offset + e->size > g->file_size || e->size > INT32_MAX) return -1;
     if (g->read(g->ctx, e->offset, buf, e->size) != 0) return -1;
     return (int)e->size;
 }
