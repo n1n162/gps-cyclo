@@ -407,11 +407,8 @@ int main(int argc, char **argv)
     ui_hooks.config_changed = h_cfg; ui_hooks.alerts_changed = h_acfg; ui_hooks.map_cfg_changed = h_mcfg;
     if (mapfile) {
         FILE *mf = fopen(mapfile, "rb");
-        gvt_entry_t *index = NULL;
         if (!mf) { perror(mapfile); return 1; }
         if (gvt_open(&map_gvt, map_read, mf) != 0) { fprintf(stderr, "Carte illisible (pas un GVT1) : %s\n", mapfile); return 1; }
-        index = malloc((size_t)map_gvt.n_tiles * sizeof *index);
-        if (!index || gvt_load_index(&map_gvt, index, map_gvt.n_tiles) != 0) { fprintf(stderr, "Index de carte invalide : %s\n", mapfile); return 1; }
         mapview_init(&map_view, &map_gvt, map_cache);
         ui_app_set_map(&app, &map_view, map_canvas);
         printf("Carte : %u tuiles, zooms %u a %u\n", (unsigned)map_gvt.n_tiles, map_gvt.zmin, map_gvt.zmax);
@@ -427,7 +424,7 @@ int main(int argc, char **argv)
                 route_unproject(&route, route.x[i], route.y[i], &lat, &lon);
                 gvt_tile_of(z, lat, lon, &tx, &ty, NULL, NULL);
                 total++;
-                if (gvt_find(&map_gvt, z, tx, ty)) covered++;
+                { gvt_entry_t entry; if (gvt_find_entry(&map_gvt, z, tx, ty, &entry) == 1) covered++; }
             }
             printf("Carte : %d %% du parcours est couvert par la carte\n", total ? 100 * covered / total : 0);
             if (total && covered * 2 < total)
