@@ -18,3 +18,8 @@ sim/lvgl/
 
 # Image C generee pour l'ecran de demarrage (environ 300 Ko binaires)
 ui/splash_img.c
+
+# Configuration et dependances generees par ESP-IDF
+sdkconfig
+sdkconfig.old
+managed_components/
