@@ -35,6 +35,63 @@ static void trace_pixel(const mapview_view_t *v, float x, float y, double *sx, d
     *sy = v->cy - (e * v->sn + n * v->cs) * v->scale;
 }
 
+
+typedef struct { uint8_t *data; uint32_t length; } mem_ctx_t;
+static int read_mem(void *ctx, uint32_t off, void *dst, uint32_t len)
+{
+    mem_ctx_t *m = ctx;
+    if ((uint64_t)off + len > m->length) return -1;
+    memcpy(dst, m->data + off, len);
+    return 0;
+}
+
+/* Deux grosses tuiles doivent rester en cache en même temps ; la troisième évince la moins récente. */
+static void test_big_cache(void)
+{
+    enum { BIG_SIZE = 70000, BIG_SLOT = 75000, BIG_COUNT = 3 };
+    static uint8_t data[BIG_SIZE * BIG_COUNT];
+    static uint8_t normal[MAPVIEW_SLOTS * MAPVIEW_SLOT_BYTES];
+    static uint8_t big_mem[2 * BIG_SLOT];
+    gvt_entry_t entries[BIG_COUNT];
+    mem_ctx_t ctx = { data, sizeof data };
+    gvt_t g = { .read = read_mem, .ctx = &ctx, .zmin = 11, .zmax = 11,
+                .n_tiles = BIG_COUNT, .index = entries };
+    mapview_t mv;
+    uint32_t size = 0, before;
+    const uint8_t *p;
+
+    for (int i = 0; i < BIG_COUNT; i++) {
+        memset(data + i * BIG_SIZE, 0x31 + i, BIG_SIZE);
+        entries[i] = (gvt_entry_t){ GVT_KEY(11, (uint32_t)(i + 1), 1), (uint32_t)(i * BIG_SIZE), BIG_SIZE };
+    }
+    mapview_init(&mv, &g, normal);
+    CHECK(mapview_set_big_cache(&mv, big_mem, BIG_SLOT, 2) == 0, "configuration de deux emplacements grands");
+    CHECK(mapview_set_big_cache(&mv, big_mem, BIG_SLOT, MAPVIEW_BIG_SLOTS_MAX + 1) == -1,
+          "refus d'un nombre d'emplacements supérieur au maximum");
+
+    p = mapview_get(&mv, 11, 1, 1, &size);
+    CHECK(p == big_mem && size == BIG_SIZE && p[0] == 0x31, "première grosse tuile chargée");
+    p = mapview_get(&mv, 11, 2, 1, &size);
+    CHECK(p == big_mem + BIG_SLOT && size == BIG_SIZE && p[0] == 0x32, "deuxième grosse tuile dans un autre emplacement");
+    before = mv.loads;
+    p = mapview_get(&mv, 11, 1, 1, &size);
+    CHECK(p == big_mem && mv.loads == before && mv.big_hits == 1, "première tuile conservée après chargement de la deuxième");
+
+    p = mapview_get(&mv, 11, 3, 1, &size);
+    CHECK(p == big_mem + BIG_SLOT && p[0] == 0x33 && mv.big_loads == 3, "troisième tuile : éviction LRU de la moins récente");
+    before = mv.loads;
+    p = mapview_get(&mv, 11, 1, 1, &size);
+    CHECK(p == big_mem && mv.loads == before, "la tuile la plus récente est toujours en cache");
+    p = mapview_get(&mv, 11, 2, 1, &size);
+    CHECK(p != NULL && p[0] == 0x32 && mv.loads == before + 1, "la tuile évincée est relue correctement");
+
+    CHECK(mapview_set_big_cache(&mv, NULL, 0, 0) == 0, "désactivation du cache grandes tuiles");
+    CHECK(mapview_get(&mv, 11, 3, 1, &size) == NULL && mv.too_big == 1,
+          "grosse tuile refusée proprement lorsque le cache est désactivé");
+    printf("  cache grandes tuiles : %u chargements, %u succès, %u refus\n",
+           mv.big_loads, mv.big_hits, mv.too_big);
+}
+
 int main(int argc, char **argv)
 {
     static float X[8], Y[8], E[8];
@@ -43,6 +100,7 @@ int main(int argc, char **argv)
     double worst = 0.0;
     int n_align = 0;
 
+    test_big_cache();
     if (argc != 2) { fprintf(stderr, "usage : %s carte.gvt\n", argv[0]); return 2; }
     route_init(&r, X, Y, E, 8, 10.0f);
     route_add_point(&r, 45.00, 5.00, 0, 0);          /* origine de la projection locale */
