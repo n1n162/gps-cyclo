@@ -55,7 +55,7 @@ static void test_big_cache(void)
     gvt_entry_t entries[BIG_COUNT];
     mem_ctx_t ctx = { data, sizeof data };
     gvt_t g = { .read = read_mem, .ctx = &ctx, .zmin = 11, .zmax = 11,
-                .n_tiles = BIG_COUNT, .index = entries };
+                .n_tiles = BIG_COUNT, .file_size = sizeof data, .index = entries };
     mapview_t mv;
     uint32_t size = 0, before;
     const uint8_t *p;
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
         const uint8_t *p;
         gvt_tile_it_t it;
         if (!f) { perror(argv[1]); return 2; }
-        CHECK(gvt_open(&g, read_file, f) == 0, "en-tete");
+        CHECK(gvt_open(&g, read_file, f, (uint32_t)(fseek(f, 0, SEEK_END) == 0 ? ftell(f) : 0)) == 0, "en-tete");
         index = malloc(g.n_tiles * sizeof *index);
         CHECK(gvt_load_index(&g, index, g.n_tiles) == 0, "index de reference pour le test");
         if (fails) return 1;
