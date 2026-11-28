@@ -103,7 +103,7 @@ Dans les deux cas, le hook `ui_hooks.map_cfg_changed` signale chaque changement,
 
 Côté programme hôte (ordinateur ou ESP32-S3) :
 
-1. Fournir une fonction de lecture sur le fichier de la carte, puis appeler `gvt_open`.
+1. Fournir une fonction de lecture sur le fichier de la carte, déterminer sa taille (en octets, fichier limité à 4 Go par les offsets GVT1), puis appeler `gvt_open(&g, read, ctx, taille)`. L'ouverture refuse un en-tête incomplet ou un index qui dépasse la taille réelle du fichier. Chaque entrée d'index est contrôlée avant utilisation : clé/zoom/coordonnées cohérents, tuile non vide, données situées après l'index et entièrement contenues dans le fichier.
 2. Pour une petite carte, `gvt_load_index` peut charger l'index en RAM (16 octets par tuile) et accélérer les recherches. Pour une carte nationale, ne pas charger cet index : `gvt_find_entry` et `mapview_get` font la recherche dichotomique dans le fichier, avec un cache LRU fixe de 4 blocs contigus de 512 octets (2 Ko au total). Chaque bloc contient 32 entrees ; les lectures SD sont donc regroupees et les blocs reutilises entre les recherches.
 3. Fournir `MAPVIEW_SLOTS` x `MAPVIEW_SLOT_BYTES` octets (16 x 64 Ko = 1 Mo) au cache courant, avec `mapview_init`.
 4. Facultatif : fournir un second tampon pour les grosses tuiles avec `mapview_set_big_cache(&mv, mem, taille_emplacement, nombre_emplacements)`. Ce cache LRU est séparé du cache compact et peut garder plusieurs grosses tuiles simultanément. Le code accepte jusqu'à `MAPVIEW_BIG_SLOTS_MAX` emplacements ; la mémoire est entièrement fournie par l'appelant. Sans ce second cache, les tuiles dépassant 64 Ko restent refusées.
