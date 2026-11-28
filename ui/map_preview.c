@@ -60,7 +60,6 @@ int main(int argc, char **argv)
     static float X[4000], Y[4000], E[4000];
     static uint8_t cache[MAPVIEW_SLOTS * MAPVIEW_SLOT_BYTES];
     static ui_app_t app;
-    static gvt_entry_t *index;
     route_t r;
     gvt_t g;
     mapview_t mv;
@@ -73,8 +72,6 @@ int main(int argc, char **argv)
     theme = argc == 4 && strcmp(argv[3], "clair") == 0;
     f = fopen(argv[1], "rb");
     if (!f || gvt_open(&g, read_file, f) != 0) { fprintf(stderr, "carte illisible : %s\n", argv[1]); return 1; }
-    index = malloc(g.n_tiles * sizeof *index);
-    if (gvt_load_index(&g, index, g.n_tiles) != 0) { fprintf(stderr, "index invalide\n"); return 1; }
     mapview_init(&mv, &g, cache);
 
     route_init(&r, X, Y, E, 4000, 10.0f);
